@@ -6,7 +6,7 @@
  * Includes error handling, retries, and timeout management
  */
 
-let API_BASE_URL = 'http://localhost:3001/api';
+let API_BASE_URL = 'https://thankworthy-endmost-mitch.ngrok-free.dev/api';
 // Prefer Vite env var (import.meta.env.VITE_API_URL), fall back to process.env if present
 try {
   // @ts-ignore - import.meta may not be recognized by some editors/tools
