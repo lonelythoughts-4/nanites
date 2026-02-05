@@ -50,11 +50,31 @@ import React, { useState, useEffect } from 'react';
           ]);
           
           setUserData({
-            user: profile.user,
-            tier_info: balance.tier_info,
-            cycle_info: balance.cycle_info,
-            balance_summary: balance.balance_summary,
-            referral_summary: referrals,
+            user: profile, // profile is the user data directly
+            tier_info: {
+              deposit_range: { min: 0, max: 10000 }, // placeholder
+              return_percent: 50, // placeholder
+              multiplier: 1 // placeholder
+            },
+            cycle_info: {
+              cycle_number: 1, // placeholder
+              start_date: new Date().toISOString(),
+              end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+              days_elapsed: 7, // placeholder
+              days_remaining: 7, // placeholder
+              expected_profit: 500, // placeholder
+              expected_balance_at_end: 1500 // placeholder
+            },
+            balance_summary: {
+              total_balance: balance.total_balance,
+              total_profits: balance.frozen_profit || 0
+            },
+            referral_summary: {
+              ...referrals,
+              total_clicks: referrals.referral_count || 0,
+              total_earnings: referrals.referral_bonus || 0,
+              referral_link: referrals.referral_code ? `https://t.me/yourbot?start=${referrals.referral_code}` : ''
+            },
             recent_transactions: transactions.transactions || []
           });
         } catch (err) {
@@ -422,7 +442,7 @@ import React, { useState, useEffect } from 'react';
                           Amount
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Asset
+                          Chain
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
@@ -447,7 +467,7 @@ import React, { useState, useEffect } from 'react';
                             ${transaction.amount.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {transaction.asset || '-'}
+                            {transaction.chain?.toUpperCase() || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction.status)}`}>
@@ -455,7 +475,7 @@ import React, { useState, useEffect } from 'react';
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(transaction.date)}
+                            {formatDate(transaction.created_at)}
                           </td>
                         </tr>
                       ))}
