@@ -42,7 +42,7 @@ async function apiCall(endpoint: string, options: any = {}) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      let errorBody = null;
+      let errorBody: any = null;
       try { errorBody = await response.json(); } catch (e) { /* ignore */ }
       const message = (errorBody && (errorBody.error || errorBody.message)) || `HTTP ${response.status}`;
       const err = new Error(message);
