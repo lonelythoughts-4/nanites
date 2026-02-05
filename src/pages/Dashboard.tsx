@@ -15,72 +15,55 @@ import React, { useState, useEffect } from 'react';
     import Footer from '../components/Footer';
     import TierBadge from '../components/TierBadge';
     import LoadingSpinner from '../components/LoadingSpinner';
+    import { getUserProfile, getUserBalance, getUserTransactions, getUserReferrals } from '../services/api';
 
     const Dashboard = () => {
       const [loading, setLoading] = useState(true);
       const [refreshing, setRefreshing] = useState(false);
       const [copied, setCopied] = useState(false);
-
-      // Mock data - in real app, fetch from API
-      const [userData] = useState({
-        user: {
-          id: "123456789",
-          username: "john_trader",
-          first_name: "John",
-          balance: 2500.50,
-          tier: "TIER_4",
-          is_trading: true,
-          referral_code: "r_abc123"
-        },
-        tier_info: {
-          current: "TIER_4",
-          deposit_range: { min: 1000, max: 5000 },
-          multiplier: 2.50,
-          return_percent: 150
-        },
-        cycle_info: {
-          cycle_number: 5,
-          start_date: "2026-02-01T00:00:00Z",
-          end_date: "2026-02-15T00:00:00Z",
-          days_elapsed: 4,
-          days_remaining: 10,
-          status: "active",
-          expected_profit: 3750,
-          expected_balance_at_end: 6250
-        },
-        balance_summary: {
-          total_balance: 2500.50,
-          total_deposits: 8500,
-          total_withdrawals: 6000,
-          total_profits: 500.50,
-          available_to_withdraw: 2500.50
-        },
-        referral_summary: {
-          referral_code: "r_abc123",
-          referral_link: "t.me/rogueezbot?start=ref_123456789",
-          total_clicks: 42,
-          total_referrals: 8,
-          total_earnings: 125.50
-        },
-        recent_transactions: [
-          { id: "dep_001", type: "deposit", amount: 1000, asset: "USDT", chain: "sol", status: "confirmed", date: "2026-02-01T10:30:00Z" },
-          { id: "txn_001", type: "profit", amount: 150, meta: { cycle: 4 }, date: "2026-02-05T00:00:00Z" },
-          { id: "wd_001", type: "withdrawal", amount: 500, asset: "USDT", chain: "eth", status: "pending", date: "2026-02-10T14:20:00Z" }
-        ]
-      });
+      const [userData, setUserData] = useState(null);
+      const [error, setError] = useState(null);
 
       useEffect(() => {
-        // Simulate loading
-        setTimeout(() => setLoading(false), 1000);
+        loadUserData();
       }, []);
+
+      const loadUserData = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          const [profile, balance, transactions, referrals] = await Promise.all([
+            getUserProfile(),
+            getUserBalance(),
+            getUserTransactions(10),
+            getUserReferrals()
+          ]);
+          
+          setUserData({
+            user: profile.user,
+            tier_info: balance.tier_info,
+            cycle_info: balance.cycle_info,
+            balance_summary: balance.balance_summary,
+            referral_summary: referrals,
+            recent_transactions: transactions.transactions || []
+          });
+        } catch (err) {
+          console.error('Failed to load user data:', err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
 
       const handleRefresh = async () => {
         setRefreshing(true);
-        // Simulate API call
-        setTimeout(() => setRefreshing(false), 1000);
+        await loadUserData();
+        setRefreshing(false);
       };
 
       const handleCopyReferral = async () => {
+        if (!userData?.referral_summary?.referral_link) return;
         try {
           await navigator.clipboard.writeText(userData.referral_summary.referral_link);
           setCopied(true);
@@ -121,6 +104,41 @@ import React, { useState, useEffect } from 'react';
       };
 
       if (loading) {
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-center h-64">
+                <LoadingSpinner size="lg" />
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+              <div className="text-center py-12">
+                <div className="text-red-600 mb-4">
+                  <p className="text-lg font-medium">Failed to load dashboard</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+                <button
+                  onClick={loadUserData}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Try Again
+                </button>
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      if (!userData) {
         return (
           <div className="min-h-screen bg-gray-50">
             <Header />

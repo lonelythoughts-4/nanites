@@ -188,8 +188,42 @@ export async function getWithdrawalStatus(withdrawalId) {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// USER API FUNCTIONS
 // ============================================================================
+
+/**
+ * Get user profile information
+ * @returns {Promise<Object>} User profile data
+ */
+export async function getUserProfile() {
+  return apiCall('/user/profile');
+}
+
+/**
+ * Get user balance and tier information
+ * @returns {Promise<Object>} Balance and tier data
+ */
+export async function getUserBalance() {
+  return apiCall('/user/balance');
+}
+
+/**
+ * Get user transaction history
+ * @param {number} limit - Max transactions to return (default 20)
+ * @param {number} offset - Offset for pagination (default 0)
+ * @returns {Promise<Object>} Transaction list
+ */
+export async function getUserTransactions(limit = 20, offset = 0) {
+  return apiCall(`/user/transactions?limit=${limit}&offset=${offset}`);
+}
+
+/**
+ * Get user referral information
+ * @returns {Promise<Object>} Referral data
+ */
+export async function getUserReferrals() {
+  return apiCall('/user/referrals');
+}
 
 /**
  * Format error messages for user display
