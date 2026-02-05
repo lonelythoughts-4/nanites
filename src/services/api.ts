@@ -29,12 +29,16 @@ async function apiCall(endpoint: string, options: any = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
+  // Get userId from localStorage for authentication
+  const userId = localStorage.getItem('userId');
+
   try {
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...(userId && { 'X-Telegram-ID': userId }),
         ...(options.headers || {})
       }
     });
