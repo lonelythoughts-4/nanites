@@ -66,16 +66,16 @@ import React, { useState, useEffect } from 'react';
               expected_balance_at_end: 1500 // placeholder
             },
             balance_summary: {
-              total_balance: balance.total_balance,
-              total_profits: balance.frozen_profit || 0
+              total_balance: Number(balance?.total_balance) || 0,
+              total_profits: Number(balance?.frozen_profit) || 0
             },
             referral_summary: {
               ...referrals,
-              total_clicks: referrals.referral_count || 0,
-              total_earnings: referrals.referral_bonus || 0,
-              referral_link: referrals.referral_code ? `https://t.me/yourbot?start=${referrals.referral_code}` : ''
+              total_clicks: Number(referrals?.referral_count) || 0,
+              total_earnings: Number(referrals?.referral_bonus) || 0,
+              referral_link: referrals?.referral_link || ''
             },
-            recent_transactions: transactions.transactions || []
+            recent_transactions: transactions?.transactions || []
           });
         } catch (err) {
           console.error('Failed to load user data:', err);
@@ -189,7 +189,7 @@ import React, { useState, useEffect } from 'react';
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    Welcome back, {userData.user.first_name}
+                    Welcome back, {userData.user?.first_name || userData.user?.username || 'User'}
                   </h1>
                   <p className="mt-2 text-gray-600">
                     Track your trading performance and manage your account
@@ -218,7 +218,7 @@ import React, { useState, useEffect } from 'react';
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Current Balance</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      ${userData.balance_summary.total_balance.toLocaleString()}
+                      ${(userData.balance_summary?.total_balance || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -232,7 +232,7 @@ import React, { useState, useEffect } from 'react';
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Total Profits</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      ${userData.balance_summary.total_profits.toLocaleString()}
+                      ${(userData.balance_summary?.total_profits || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -246,7 +246,7 @@ import React, { useState, useEffect } from 'react';
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Referrals</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {userData.referral_summary.total_referrals}
+                      {userData.referral_summary?.total_clicks || 0}
                     </p>
                   </div>
                 </div>
@@ -260,7 +260,7 @@ import React, { useState, useEffect } from 'react';
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Cycle Days Left</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {userData.cycle_info.days_remaining}
+                      {userData.cycle_info?.days_remaining || 7}
                     </p>
                   </div>
                 </div>
@@ -290,12 +290,12 @@ import React, { useState, useEffect } from 'react';
                     <div className="mb-6">
                       <div className="flex justify-between text-sm text-gray-600 mb-2">
                         <span>Progress</span>
-                        <span>{userData.cycle_info.days_elapsed} / 14 days</span>
+                        <span>{userData.cycle_info?.days_elapsed || 7} / 14 days</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(userData.cycle_info.days_elapsed / 14) * 100}%` }}
+                          style={{ width: `${((userData.cycle_info?.days_elapsed || 7) / 14) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -304,13 +304,13 @@ import React, { useState, useEffect } from 'react';
                       <div className="bg-blue-50 rounded-lg p-4">
                         <p className="text-sm text-blue-600 font-medium">Expected Profit</p>
                         <p className="text-xl font-bold text-blue-900">
-                          ${userData.cycle_info.expected_profit.toLocaleString()}
+                          ${(userData.cycle_info?.expected_profit || 500).toLocaleString()}
                         </p>
                       </div>
                       <div className="bg-green-50 rounded-lg p-4">
                         <p className="text-sm text-green-600 font-medium">Balance at End</p>
                         <p className="text-xl font-bold text-green-900">
-                          ${userData.cycle_info.expected_balance_at_end.toLocaleString()}
+                          ${(userData.cycle_info?.expected_balance_at_end || 1500).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -342,25 +342,25 @@ import React, { useState, useEffect } from 'react';
                   </div>
                   <div className="p-6">
                     <div className="text-center mb-4">
-                      <TierBadge tier={userData.user.tier} className="text-lg px-4 py-2" />
+                      <TierBadge tier={userData.user?.tier || 1} className="text-lg px-4 py-2" />
                     </div>
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Deposit Range:</span>
                         <span className="font-medium">
-                          ${userData.tier_info.deposit_range.min.toLocaleString()} - ${userData.tier_info.deposit_range.max.toLocaleString()}
+                          ${(userData.tier_info?.deposit_range?.min || 0).toLocaleString()} - ${(userData.tier_info?.deposit_range?.max || 10000).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">14-Day Return:</span>
                         <span className="font-medium text-green-600">
-                          {userData.tier_info.return_percent}%
+                          {userData.tier_info?.return_percent || 50}%
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Multiplier:</span>
                         <span className="font-medium">
-                          {userData.tier_info.multiplier}x
+                          {userData.tier_info?.multiplier || 1}x
                         </span>
                       </div>
                     </div>
@@ -379,7 +379,7 @@ import React, { useState, useEffect } from 'react';
                       </label>
                       <div className="flex items-center space-x-2">
                         <div className="flex-1 p-2 bg-gray-50 rounded-md border text-xs font-mono break-all">
-                          {userData.referral_summary.referral_link}
+                          {userData.referral_summary?.referral_link || ''}
                         </div>
                         <button
                           onClick={handleCopyReferral}
@@ -397,12 +397,12 @@ import React, { useState, useEffect } from 'react';
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-gray-600">Total Clicks</p>
-                        <p className="font-semibold">{userData.referral_summary.total_clicks}</p>
+                        <p className="font-semibold">{userData.referral_summary?.total_clicks || 0}</p>
                       </div>
                       <div>
                         <p className="text-gray-600">Earnings</p>
                         <p className="font-semibold text-green-600">
-                          ${userData.referral_summary.total_earnings}
+                          ${userData.referral_summary?.total_earnings || 0}
                         </p>
                       </div>
                     </div>
@@ -464,18 +464,18 @@ import React, { useState, useEffect } from 'react';
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${transaction.amount.toLocaleString()}
+                            ${(transaction?.amount || 0).toLocaleString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {transaction.chain?.toUpperCase() || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction.status)}`}>
-                              {transaction.status}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction?.status || 'pending')}`}>
+                              {transaction?.status || 'pending'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(transaction.created_at)}
+                            {formatDate(transaction?.created_at || transaction?.date)}
                           </td>
                         </tr>
                       ))}
