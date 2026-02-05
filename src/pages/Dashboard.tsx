@@ -18,11 +18,20 @@ import React, { useState, useEffect } from 'react';
     import { getUserProfile, getUserBalance, getUserTransactions, getUserReferrals } from '../services/api';
 
     const Dashboard = () => {
+      interface UserData {
+        user: any;
+        tier_info: any;
+        cycle_info: any;
+        balance_summary: any;
+        referral_summary: any;
+        recent_transactions: any[];
+      }
+
       const [loading, setLoading] = useState(true);
       const [refreshing, setRefreshing] = useState(false);
       const [copied, setCopied] = useState(false);
-      const [userData, setUserData] = useState(null);
-      const [error, setError] = useState(null);
+      const [userData, setUserData] = useState<UserData | null>(null);
+      const [error, setError] = useState<string | null>(null);
 
       useEffect(() => {
         loadUserData();
@@ -50,7 +59,7 @@ import React, { useState, useEffect } from 'react';
           });
         } catch (err) {
           console.error('Failed to load user data:', err);
-          setError(err.message);
+          setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
           setLoading(false);
         }
