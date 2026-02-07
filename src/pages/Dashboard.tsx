@@ -45,112 +45,119 @@ import React, { useState, useEffect } from 'react';
           console.log('Starting loadUserData...');
           console.log('userId from localStorage:', localStorage.getItem('userId'));
           
-          // Fetch all data in parallel with fallback defaults
-          const [profile, balance, transactions, referrals, tierData, cycleData] = await Promise.allSettled([
-            getUserProfile(),
-            getUserBalance(),
-            getUserTransactions(10),
-            getUserReferrals(),
-            (async () => {
-              try {
-                const api = await import('../services/api');
-                return await api.getUserTier();
-              } catch (e) {
-                console.warn('Failed to fetch tier data:', e);
-                return null;
-              }
-            })(),
-            (async () => {
-              try {
-                const api = await import('../services/api');
-                return await api.getUserCycle();
-              } catch (e) {
-                console.warn('Failed to fetch cycle data:', e);
-                return null;
-              }
-            })()
-          ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
-          
-          // Use fallback defaults if any request fails
-          const fallbackTierData = tierData || {
-            daily_profit_percent: 0.5,
-            tier_name: 'Bronze',
-            progress_to_next: 0
-          };
-          
-          const fallbackCycleData = cycleData || {
-            cycle_start: new Date().toISOString(),
-            cycle_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-            days_remaining: 14,
-            cycle_status: 'inactive'
-          };
-
-          const fallbackBalance = balance || {
-            total_balance: 0,
-            frozen_profit: 0
-          };
-
-          const fallbackReferrals = referrals || {
-            total_clicks: 0,
-            total_earnings: 0,
-            referral_link: ''
-          };
-
-          const fallbackTransactions = transactions || {
-            transactions: []
-          };
-          
-          setUserData({
-            user: profile || { id: localStorage.getItem('userId'), username: 'User' },
-            tier_info: {
-              deposit_range: { min: 0, max: 10000 },
-              return_percent: (fallbackTierData.daily_profit_percent || 0.5) * 100,
-              multiplier: 1,
-              tier_name: fallbackTierData.tier_name || 'Bronze',
-              progress: fallbackTierData.progress_to_next || 0
-            },
-            cycle_info: {
-              cycle_number: 1,
-              start_date: fallbackCycleData.cycle_start,
-              end_date: fallbackCycleData.cycle_end,
-              days_elapsed: Math.max(0, 14 - (fallbackCycleData.days_remaining || 14)),
-              days_remaining: fallbackCycleData.days_remaining || 14,
-              expected_profit: 500,
-              expected_balance_at_end: (fallbackBalance?.total_balance || 0) + 500,
-              status: fallbackCycleData.cycle_status || 'inactive'
-            },
-            balance_summary: {
-              total_balance: Number(fallbackBalance?.total_balance) || 0,
-              total_profits: Number(fallbackBalance?.frozen_profit) || 0
-            },
-            referral_summary: {
-              ...fallbackReferrals,
-              total_clicks: Number(fallbackReferrals?.total_clicks) || 0,
-              total_earnings: Number(fallbackReferrals?.total_earnings) || 0,
-              referral_link: fallbackReferrals?.referral_link || ''
-            },
-            recent_transactions: fallbackTransactions?.transactions || []
-          });
-
-          // Show warning if any request failed
-          if (!profile || !balance || !transactions || !referrals) {
-            setError('Some data is loading. Please refresh for live updates.');
-          }
-        } catch (err) {
-          console.error('Failed to load user data:', err);
-          
-          // Even on total failure, show default fallbacks so UI isn't blank
+          // First, show fallback defaults immediately (instant load)
           const userId = localStorage.getItem('userId');
-          setUserData({
-            user: { id: userId, username: 'User' },
+          const instantFallback = {
+            user: { id: userId, username: 'Loading...' },
             tier_info: { deposit_range: { min: 0, max: 10000 }, return_percent: 50, multiplier: 1, tier_name: 'Bronze', progress: 0 },
             cycle_info: { cycle_number: 1, start_date: new Date().toISOString(), end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), days_elapsed: 7, days_remaining: 7, expected_profit: 500, expected_balance_at_end: 1500, status: 'inactive' },
             balance_summary: { total_balance: 0, total_profits: 0 },
             referral_summary: { total_clicks: 0, total_earnings: 0, referral_link: '' },
             recent_transactions: []
-          });
+          };
+          setUserData(instantFallback);
           
-          setError(err instanceof Error ? err.message : 'Unable to load user data. Showing defaults.')
+          // Then fetch real data in background without blocking UI
+          try {
+            const [profile, balance, transactions, referrals, tierData, cycleData] = await Promise.allSettled([
+              getUserProfile(),
+              getUserBalance(),
+              getUserTransactions(10),
+              getUserReferrals(),
+              (async () => {
+                try {
+                  const api = await import('../services/api');
+                  return await api.getUserTier();
+                } catch (e) {
+                  console.warn('Failed to fetch tier data:', e);
+                  return null;
+                }
+              })(),
+              (async () => {
+                try {
+                  const api = await import('../services/api');
+                  return await api.getUserCycle();
+                } catch (e) {
+                  console.warn('Failed to fetch cycle data:', e);
+                  return null;
+                }
+              })()
+            ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
+            
+            // Use fallback defaults if any request fails
+            const fallbackTierData = tierData || {
+              daily_profit_percent: 0.5,
+              tier_name: 'Bronze',
+              progress_to_next: 0
+            };
+            
+            const fallbackCycleData = cycleData || {
+              cycle_start: new Date().toISOString(),
+              cycle_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+              days_remaining: 14,
+              cycle_status: 'inactive'
+            };
+
+            const fallbackBalance = balance || {
+              total_balance: 0,
+              frozen_profit: 0
+            };
+
+            const fallbackReferrals = referrals || {
+              total_clicks: 0,
+              total_earnings: 0,
+              referral_link: ''
+            };
+
+            const fallbackTransactions = transactions || {
+              transactions: []
+            };
+            
+            setUserData({
+              user: profile || { id: userId, username: 'User' },
+              tier_info: {
+                deposit_range: { min: 0, max: 10000 },
+                return_percent: (fallbackTierData.daily_profit_percent || 0.5) * 100,
+                multiplier: 1,
+                tier_name: fallbackTierData.tier_name || 'Bronze',
+                progress: fallbackTierData.progress_to_next || 0
+              },
+              cycle_info: {
+                cycle_number: 1,
+                start_date: fallbackCycleData.cycle_start,
+                end_date: fallbackCycleData.cycle_end,
+                days_elapsed: Math.max(0, 14 - (fallbackCycleData.days_remaining || 14)),
+                days_remaining: fallbackCycleData.days_remaining || 14,
+                expected_profit: 500,
+                expected_balance_at_end: (fallbackBalance?.total_balance || 0) + 500,
+                status: fallbackCycleData.cycle_status || 'inactive'
+              },
+              balance_summary: {
+                total_balance: Number(fallbackBalance?.total_balance) || 0,
+                total_profits: Number(fallbackBalance?.frozen_profit) || 0
+              },
+              referral_summary: {
+                ...fallbackReferrals,
+                total_clicks: Number(fallbackReferrals?.total_clicks) || 0,
+                total_earnings: Number(fallbackReferrals?.total_earnings) || 0,
+                referral_link: fallbackReferrals?.referral_link || ''
+              },
+              recent_transactions: fallbackTransactions?.transactions || []
+            });
+
+            // Show warning if any request failed
+            if (!profile || !balance || !transactions || !referrals) {
+              setError('⚠️ Some live data unavailable. Showing cached/default values.');
+            } else {
+              setError(null);
+            }
+          } catch (fetchErr) {
+            console.error('Background data fetch error (using defaults):', fetchErr);
+            setError('⚠️ Running offline. All data is from cache/defaults.');
+          }
+        } catch (err) {
+          console.error('Failed to initialize dashboard:', err);
+          setError('Unable to load dashboard');
         } finally {
           setLoading(false);
         }

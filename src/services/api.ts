@@ -19,10 +19,45 @@ const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname.
   : NGROK_URL;
 
 /**
+ * Quick health check: is the API reachable?
+ */
+let apiHealthCache: { ok: boolean; timestamp: number } | null = null;
+async function isApiHealthy(): Promise<boolean> {
+  try {
+    // Return cached result if fresh (within 10 seconds)
+    if (apiHealthCache && Date.now() - apiHealthCache.timestamp < 10000) {
+      return apiHealthCache.ok;
+    }
+
+    const url = `${API_BASE_URL}/user/profile`;
+    const response = await fetch(url, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(3000)
+    }).catch(() => null);
+
+    const ok = response?.ok === true;
+    apiHealthCache = { ok, timestamp: Date.now() };
+    return ok;
+  } catch {
+    apiHealthCache = { ok: false, timestamp: Date.now() };
+    return false;
+  }
+}
+
+/**
  * Retry logic with exponential backoff
+ * Skip retries if API health check fails — use fallback instead
  */
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = MAX_RETRIES): Promise<T> {
   let lastError: any;
+  
+  // Quick health check first — if API is down, fail fast instead of retrying
+  const isHealthy = await isApiHealthy().catch(() => false);
+  if (!isHealthy) {
+    console.warn('API health check failed, using fallback data immediately');
+    throw new Error('API unreachable - using fallback data');
+  }
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await fn();
