@@ -30,11 +30,15 @@ async function isApiHealthy(): Promise<boolean> {
     }
 
     const url = `${API_BASE_URL}/user/profile`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
     const response = await fetch(url, {
       method: 'HEAD',
-      signal: AbortSignal.timeout(3000)
+      signal: controller.signal
     }).catch(() => null);
 
+    clearTimeout(timeoutId);
     const ok = response?.ok === true;
     apiHealthCache = { ok, timestamp: Date.now() };
     return ok;
