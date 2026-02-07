@@ -12,11 +12,16 @@ const REQUEST_TIMEOUT = 15000; // 15 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // start with 1 second, exponential backoff
 
-// Use a same-origin proxy when running on Vercel to avoid CORS issues.
-// On Vercel the frontend will call `/api/proxy/*` which forwards to the ngrok URL.
-const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
-  ? '/api/proxy'
-  : NGROK_URL;
+// Always use proxy on Vercel/production. Only use ngrok for local dev.
+// The proxy at /api/proxy/* forwards to ngrok and avoids CORS completely.
+const isLocalDev = (typeof window !== 'undefined') && 
+  (window.location.hostname === 'localhost' || 
+   window.location.hostname === '127.0.0.1' ||
+   window.location.hostname.startsWith('192.168.') ||
+   window.location.port === '5173' ||
+   window.location.port === '3000');
+
+const API_BASE_URL = isLocalDev ? NGROK_URL : '/api/proxy';
 
 /**
  * Quick health check: is the API reachable?
