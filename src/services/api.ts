@@ -3,67 +3,128 @@
  * Client-side service to communicate with bot backend
  * 
  * Handles all API calls from React webapp to bot server
- * Includes error handling, retries, and timeout management
+ * Includes error handling, retries, timeout management, and automatic fallbacks
  */
 
-let API_BASE_URL = 'https://thankworthy-endmost-mitch.ngrok-free.dev/api';
-// Prefer Vite env var (import.meta.env.VITE_API_URL), fall back to process.env if present
-try {
-  // @ts-ignore - import.meta may not be recognized by some editors/tools
-  const viteUrl = (import.meta as any)?.env?.VITE_API_URL;
-  if (viteUrl) API_BASE_URL = viteUrl;
-} catch (e) {
-  // ignore
-}
-if (typeof process !== 'undefined' && (process as any)?.env?.REACT_APP_API_URL) {
-  API_BASE_URL = (process as any).env.REACT_APP_API_URL;
-}
+// Hardcode for debugging
+const NGROK_URL = 'https://thankworthy-endmost-mitch.ngrok-free.dev/api';
 const REQUEST_TIMEOUT = 15000; // 15 seconds
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // start with 1 second, exponential backoff
+
+// Use a same-origin proxy when running on Vercel to avoid CORS issues.
+// On Vercel the frontend will call `/api/proxy/*` which forwards to the ngrok URL.
+const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
+  ? '/api/proxy'
+  : NGROK_URL;
+
+/**
+ * Retry logic with exponential backoff
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = MAX_RETRIES): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const isRetryable = 
+        (err instanceof Error && err.message?.includes('timeout')) ||
+        (err instanceof Error && err.message?.includes('Failed to fetch')) ||
+        (err instanceof Error && err.message?.includes('ERR_FAILED')) ||
+        err?.status === 502 ||
+        err?.status === 503 ||
+        err?.status === 504;
+      
+      if (!isRetryable || attempt === maxRetries - 1) {
+        throw err;
+      }
+      
+      const delay = RETRY_DELAY * Math.pow(2, attempt);
+      console.warn(`Retry ${attempt + 1}/${maxRetries} after ${delay}ms:`, err?.message);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
 
 /**
  * Generic fetch wrapper with timeout and error handling
  */
 async function apiCall(endpoint: string, options: any = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  return withRetry(async () => {
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log('Making API call to:', url);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  // Get userId from localStorage for authentication
-  const userId = localStorage.getItem('userId');
+    // Get userId from localStorage for authentication
+    const userId = localStorage.getItem('userId');
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
+    try {
+      const method = (options.method || 'GET').toUpperCase();
+      const isBodyMethod = !['GET', 'HEAD'].includes(method);
+      const headers = {
+        ...(isBodyMethod && { 'Content-Type': 'application/json' }),
         ...(userId && { 'X-Telegram-ID': userId }),
         ...(options.headers || {})
-      }
-    });
+      };
 
-    clearTimeout(timeoutId);
+      const fetchOptions: any = {
+        ...options,
+        method,
+        signal: controller.signal,
+        headers
+      };
+
+      // Ensure body is a string when present
+      if (isBodyMethod && fetchOptions.body && typeof fetchOptions.body !== 'string') {
+        fetchOptions.body = JSON.stringify(fetchOptions.body);
+      }
+
+      const response = await fetch(url, fetchOptions);
+
+      clearTimeout(timeoutId);
+
+    // Read raw text first so we can detect HTML error pages or invalid JSON
+    const contentType = response.headers.get('content-type') || '';
+    const rawText = await response.text().catch(() => null);
 
     if (!response.ok) {
       let errorBody: any = null;
-      try { errorBody = await response.json(); } catch (e) { /* ignore */ }
+      if (contentType.includes('application/json') && rawText) {
+        try { errorBody = JSON.parse(rawText); } catch (e) { /* ignore */ }
+      }
       const message = (errorBody && (errorBody.error || errorBody.message)) || `HTTP ${response.status}`;
       const err = new Error(message);
       (err as any).status = response.status;
-      (err as any).body = errorBody;
+      (err as any).body = errorBody || rawText;
       throw err;
     }
 
-    return await response.json();
-
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error?.name === 'AbortError') {
-      throw new Error('Request timeout - server not responding');
+    // Expect JSON response for API endpoints
+    if (contentType.includes('application/json')) {
+      try {
+        return rawText ? JSON.parse(rawText) : {};
+      } catch (e) {
+        console.error('Failed to parse JSON response for', url, 'raw:', rawText);
+        throw new Error('Invalid JSON response from server');
+      }
     }
-    throw error;
-  }
+
+    // If we get here, server returned something other than JSON (likely HTML)
+    console.error('Expected JSON but got', contentType, 'for', url, 'raw:', rawText);
+    throw new Error('Server returned non-JSON response');
+
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error?.name === 'AbortError') {
+        throw new Error('Request timeout - server not responding');
+      }
+      throw error;
+    }
+  });
 }
 
 // ============================================================================
@@ -230,6 +291,58 @@ export async function getUserReferrals() {
 }
 
 /**
+ * Get user trading cycle status
+ * @returns {Promise<Object>} Trading status
+ */
+export async function getTradingStatus() {
+  return apiCall('/trading/status');
+}
+
+/**
+ * Start a 14-day trading cycle
+ * @returns {Promise<Object>} Cycle start response
+ */
+export async function startTrading() {
+  return apiCall('/trading/start', {
+    method: 'POST',
+    body: JSON.stringify({})
+  });
+}
+
+/**
+ * Stop/pause current trading cycle
+ * @returns {Promise<Object>} Cycle stop response
+ */
+export async function stopTrading() {
+  return apiCall('/trading/stop', {
+    method: 'POST',
+    body: JSON.stringify({})
+  });
+}
+
+/**
+ * Check if current user is admin (has admin access)
+ * @returns {Promise<boolean>} True if user is admin
+ */
+export async function isAdmin() {
+  try {
+    const profile = await getUserProfile();
+    // Check if user has admin_id or admin flag (set by backend)
+    return profile?.is_admin === true || localStorage.getItem('isAdmin') === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Get user trading cycle information
+ * @returns {Promise<Object>} Cycle data
+ */
+export async function getUserCycle() {
+  return apiCall('/user/cycle');
+}
+
+/**
  * Format error messages for user display
  */
 export function formatErrorMessage(error) {
@@ -274,7 +387,60 @@ export async function getReferralData() {
 }
 
 /**
- * Get expected confirmation time for a chain
+ * Get user tier information
+ * @returns {Promise<Object>} Tier data
+ */
+export async function getUserTier() {
+  return apiCall('/user/tier');
+}
+
+/**
+ * Get user notifications
+ * @param {number} limit - Max notifications to return (default 20)
+ * @returns {Promise<Object>} Notifications list
+ */
+export async function getUserNotifications(limit = 20) {
+  return apiCall(`/user/notifications?limit=${limit}`);
+}
+
+/**
+ * Get user deposits history
+ * @param {number} limit - Max deposits to return
+ * @returns {Promise<Object>} Deposits list
+ */
+export async function getUserDeposits(limit = 20) {
+  return apiCall(`/user/deposits?limit=${limit}`);
+}
+
+/**
+ * Get user withdrawals history
+ * @param {number} limit - Max withdrawals to return
+ * @returns {Promise<Object>} Withdrawals list
+ */
+export async function getUserWithdrawals(limit = 20) {
+  return apiCall(`/user/withdrawals?limit=${limit}`);
+}
+
+/**
+ * Submit a support/contact message
+ * @param {string} category - Support category
+ * @param {string} subject - Subject line
+ * @param {string} message - Message content
+ * @returns {Promise<Object>} Support ticket response
+ */
+export async function submitSupportMessage(category, subject, message) {
+  return apiCall('/support/contact', {
+    method: 'POST',
+    body: JSON.stringify({
+      category,
+      subject,
+      message
+    })
+  });
+}
+
+/**
+ * Get format error messages for user display
  */
 export function getExpectedTime(chain) {
   const times = {
@@ -292,7 +458,21 @@ export default {
   requestWithdrawal,
   checkWithdrawalStatus,
   getWithdrawalStatus,
+  getUserProfile,
+  getUserBalance,
+  getUserTransactions,
+  getUserReferrals,
+  getUserTier,
+  getUserCycle,
+  getUserNotifications,
+  getUserDeposits,
+  getUserWithdrawals,
+  getTradingStatus,
+  startTrading,
+  stopTrading,
   getReferralData,
+  submitSupportMessage,
+  isAdmin,
   formatErrorMessage,
   formatUSD,
   getExpectedTime

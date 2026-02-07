@@ -6,6 +6,13 @@ import Deposit from './pages/Deposit';
 import Withdraw from './pages/Withdraw';
 import Referrals from './pages/Referrals';
 import Tutorials from './pages/Tutorials';
+import Trading from './pages/Trading';
+import Support from './pages/Support';
+import History from './pages/History';
+import Notifications from './pages/Notifications';
+import Stats from './pages/Stats';
+import Settings from './pages/Settings';
+import AdminPanel from './pages/AdminPanel';
 import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
@@ -34,9 +41,12 @@ const App: React.FC = () => {
         }
         setTelegramReady(true);
       } else {
-        // Fallback for dev: use localStorage or demo ID
-        const storedId = localStorage.getItem('userId') || localStorage.getItem('demoUserId') || 'demo_user_' + Date.now();
-        setUserId(storedId);
+        // Fallback for dev: use localStorage or demo ID from env
+        const storedId = localStorage.getItem('userId') || localStorage.getItem('demoUserId');
+        const demoUser = import.meta.env.VITE_DEMO_USER;
+        const fallbackId = storedId || demoUser || 'demo_user_' + Date.now();
+        setUserId(fallbackId);
+        localStorage.setItem('userId', fallbackId);
         setTelegramReady(true);
       }
     };
@@ -65,6 +75,13 @@ const App: React.FC = () => {
           <Route path="/withdraw" element={<Withdraw />} />
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/tutorials" element={<Tutorials />} />
+          <Route path="/trading" element={<Trading />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

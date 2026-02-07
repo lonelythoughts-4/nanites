@@ -42,44 +42,115 @@ import React, { useState, useEffect } from 'react';
           setLoading(true);
           setError(null);
           
-          const [profile, balance, transactions, referrals] = await Promise.all([
+          console.log('Starting loadUserData...');
+          console.log('userId from localStorage:', localStorage.getItem('userId'));
+          
+          // Fetch all data in parallel with fallback defaults
+          const [profile, balance, transactions, referrals, tierData, cycleData] = await Promise.allSettled([
             getUserProfile(),
             getUserBalance(),
             getUserTransactions(10),
-            getUserReferrals()
-          ]);
+            getUserReferrals(),
+            (async () => {
+              try {
+                const api = await import('../services/api');
+                return await api.getUserTier();
+              } catch (e) {
+                console.warn('Failed to fetch tier data:', e);
+                return null;
+              }
+            })(),
+            (async () => {
+              try {
+                const api = await import('../services/api');
+                return await api.getUserCycle();
+              } catch (e) {
+                console.warn('Failed to fetch cycle data:', e);
+                return null;
+              }
+            })()
+          ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
+          
+          // Use fallback defaults if any request fails
+          const fallbackTierData = tierData || {
+            daily_profit_percent: 0.5,
+            tier_name: 'Bronze',
+            progress_to_next: 0
+          };
+          
+          const fallbackCycleData = cycleData || {
+            cycle_start: new Date().toISOString(),
+            cycle_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            days_remaining: 14,
+            cycle_status: 'inactive'
+          };
+
+          const fallbackBalance = balance || {
+            total_balance: 0,
+            frozen_profit: 0
+          };
+
+          const fallbackReferrals = referrals || {
+            total_clicks: 0,
+            total_earnings: 0,
+            referral_link: ''
+          };
+
+          const fallbackTransactions = transactions || {
+            transactions: []
+          };
           
           setUserData({
-            user: profile, // profile is the user data directly
+            user: profile || { id: localStorage.getItem('userId'), username: 'User' },
             tier_info: {
-              deposit_range: { min: 0, max: 10000 }, // placeholder
-              return_percent: 50, // placeholder
-              multiplier: 1 // placeholder
+              deposit_range: { min: 0, max: 10000 },
+              return_percent: (fallbackTierData.daily_profit_percent || 0.5) * 100,
+              multiplier: 1,
+              tier_name: fallbackTierData.tier_name || 'Bronze',
+              progress: fallbackTierData.progress_to_next || 0
             },
             cycle_info: {
-              cycle_number: 1, // placeholder
-              start_date: new Date().toISOString(),
-              end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-              days_elapsed: 7, // placeholder
-              days_remaining: 7, // placeholder
-              expected_profit: 500, // placeholder
-              expected_balance_at_end: 1500 // placeholder
+              cycle_number: 1,
+              start_date: fallbackCycleData.cycle_start,
+              end_date: fallbackCycleData.cycle_end,
+              days_elapsed: Math.max(0, 14 - (fallbackCycleData.days_remaining || 14)),
+              days_remaining: fallbackCycleData.days_remaining || 14,
+              expected_profit: 500,
+              expected_balance_at_end: (fallbackBalance?.total_balance || 0) + 500,
+              status: fallbackCycleData.cycle_status || 'inactive'
             },
             balance_summary: {
-              total_balance: Number(balance?.total_balance) || 0,
-              total_profits: Number(balance?.frozen_profit) || 0
+              total_balance: Number(fallbackBalance?.total_balance) || 0,
+              total_profits: Number(fallbackBalance?.frozen_profit) || 0
             },
             referral_summary: {
-              ...referrals,
-              total_clicks: Number(referrals?.referral_count) || 0,
-              total_earnings: Number(referrals?.referral_bonus) || 0,
-              referral_link: referrals?.referral_link || ''
+              ...fallbackReferrals,
+              total_clicks: Number(fallbackReferrals?.total_clicks) || 0,
+              total_earnings: Number(fallbackReferrals?.total_earnings) || 0,
+              referral_link: fallbackReferrals?.referral_link || ''
             },
-            recent_transactions: transactions?.transactions || []
+            recent_transactions: fallbackTransactions?.transactions || []
           });
+
+          // Show warning if any request failed
+          if (!profile || !balance || !transactions || !referrals) {
+            setError('Some data is loading. Please refresh for live updates.');
+          }
         } catch (err) {
           console.error('Failed to load user data:', err);
-          setError(err instanceof Error ? err.message : 'An error occurred');
+          
+          // Even on total failure, show default fallbacks so UI isn't blank
+          const userId = localStorage.getItem('userId');
+          setUserData({
+            user: { id: userId, username: 'User' },
+            tier_info: { deposit_range: { min: 0, max: 10000 }, return_percent: 50, multiplier: 1, tier_name: 'Bronze', progress: 0 },
+            cycle_info: { cycle_number: 1, start_date: new Date().toISOString(), end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), days_elapsed: 7, days_remaining: 7, expected_profit: 500, expected_balance_at_end: 1500, status: 'inactive' },
+            balance_summary: { total_balance: 0, total_profits: 0 },
+            referral_summary: { total_clicks: 0, total_earnings: 0, referral_link: '' },
+            recent_transactions: []
+          });
+          
+          setError(err instanceof Error ? err.message : 'Unable to load user data. Showing defaults.')
         } finally {
           setLoading(false);
         }

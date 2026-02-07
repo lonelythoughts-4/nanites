@@ -11,40 +11,29 @@ const Referrals = () => {
   const [referralData, setReferralData] = useState<any>(null);
 
   useEffect(() => {
-    // Mock referral data (no API call)
-    setTimeout(() => {
-      setReferralData({
-        referral_code: 'r_7623727266',
-        referral_link: 't.me/rogueezbot?start=ref_7623727266',
-        total_clicks: 42,
-        total_referrals: 8,
-        total_earnings: 125.50,
-        referrals_list: [
-          {
-            id: '1111111111',
-            username: 'trader1',
-            referred_at: new Date(Date.now() - 7 * 86400000).toISOString(),
-            total_deposits: 500,
-            bonus_earned: 30
-          },
-          {
-            id: '2222222222',
-            username: 'trader2',
-            referred_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-            total_deposits: 100,
-            bonus_earned: 10
-          },
-          {
-            id: '3333333333',
-            username: 'trader3',
-            referred_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-            total_deposits: 200,
-            bonus_earned: 15
-          }
-        ]
-      });
-      setLoading(false);
-    }, 800);
+    const loadReferralData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.getReferralData();
+        setReferralData(data);
+      } catch (err) {
+        console.error('Failed to load referral data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load referral data');
+        // Fallback to mock data if API fails
+        setReferralData({
+          referral_code: 'r_unknown',
+          referral_link: 't.me/rogueezbot?start=ref_unknown',
+          total_clicks: 0,
+          total_referrals: 0,
+          total_earnings: 0,
+          referrals_list: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReferralData();
   }, []);
 
   const handleCopy = async () => {
