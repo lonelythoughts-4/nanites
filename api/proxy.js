@@ -2,7 +2,9 @@
 // Avoids all CORS issues by using same-origin proxy pattern
 // Place this file in `WEBAPP/api/proxy.js`
 
-const TARGET_BASE = 'https://thankworthy-endmost-mitch.ngrok-free.dev';
+// Read target from environment (set on Vercel as TARGET_BASE or NGROK_URL).
+// Default to ngrok for production; can override via Vercel env vars.
+const TARGET_BASE = process.env.TARGET_BASE || process.env.NGROK_URL || 'https://thankworthy-endmost-mitch.ngrok-free.dev';
 
 module.exports = async (req, res) => {
   try {

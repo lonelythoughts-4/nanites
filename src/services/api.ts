@@ -6,8 +6,10 @@
  * Includes error handling, retries, timeout management, and automatic fallbacks
  */
 
-// Hardcode for debugging
-const NGROK_URL = 'https://thankworthy-endmost-mitch.ngrok-free.dev/api';
+// Use Vite env var if provided (for local dev); otherwise default to localhost
+const NGROK_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL)
+  ? String((import.meta as any).env.VITE_API_URL)
+  : 'http://localhost:3004/api';
 const REQUEST_TIMEOUT = 15000; // 15 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // start with 1 second, exponential backoff
