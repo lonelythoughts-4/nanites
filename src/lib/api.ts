@@ -2,7 +2,7 @@ import { getInitData } from './telegram';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://thankworthy-endmost-mitch.ngrok-free.dev:3002';
+  'https://thankworthy-endmost-mitch.ngrok-free.dev';
 
 const DEV_TELEGRAM_ID = import.meta.env.VITE_DEV_TELEGRAM_ID || '';
 
