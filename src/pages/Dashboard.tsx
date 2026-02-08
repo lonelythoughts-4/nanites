@@ -16,6 +16,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TierBadge from '../components/TierBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
+import WebAppDiagnostics from '../components/WebAppDiagnostics';
 import { api } from '../lib/api';
 
 const TOTAL_CYCLE_DAYS = 14;
@@ -28,6 +29,7 @@ const Dashboard = () => {
   const [referrals, setReferrals] = useState<any>(null);
   const [tierInfo, setTierInfo] = useState<any>(null);
   const [cycleInfo, setCycleInfo] = useState<any>(null);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const fetchAll = async (showSpinner: boolean) => {
     if (showSpinner) setLoading(true);
@@ -40,21 +42,25 @@ const Dashboard = () => {
         api.getCycle()
       ]);
 
+      const errorList: string[] = [];
       if (dashRes.status === 'fulfilled') setDashboard(dashRes.value);
+      else errorList.push(`Dashboard: ${dashRes.reason?.message || 'failed'}`);
       if (referralRes.status === 'fulfilled') setReferrals(referralRes.value);
+      else errorList.push(`Referrals: ${referralRes.reason?.message || 'failed'}`);
       if (tierRes.status === 'fulfilled') setTierInfo(tierRes.value);
+      else errorList.push(`Tier: ${tierRes.reason?.message || 'failed'}`);
       if (cycleRes.status === 'fulfilled') setCycleInfo(cycleRes.value);
+      else errorList.push(`Cycle: ${cycleRes.reason?.message || 'failed'}`);
 
-      if (
-        dashRes.status === 'rejected' ||
-        referralRes.status === 'rejected' ||
-        tierRes.status === 'rejected' ||
-        cycleRes.status === 'rejected'
-      ) {
+      if (errorList.length > 0) {
+        setErrors(errorList);
         toast.error('Some dashboard data failed to load.');
+      } else {
+        setErrors([]);
       }
     } catch (err: any) {
       toast.error(err?.message || 'Failed to load dashboard.');
+      setErrors([err?.message || 'Failed to load dashboard.']);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -165,6 +171,20 @@ const Dashboard = () => {
       <Header />
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {errors.length > 0 && (
+          <div className="mb-6 space-y-3">
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+              <div className="font-semibold mb-1">Some data failed to load</div>
+              <ul className="list-disc list-inside">
+                {errors.map((err, idx) => (
+                  <li key={`${err}-${idx}`}>{err}</li>
+                ))}
+              </ul>
+            </div>
+            <WebAppDiagnostics />
+          </div>
+        )}
+
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>

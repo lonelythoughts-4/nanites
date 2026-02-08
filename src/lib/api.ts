@@ -1,6 +1,6 @@
 import { getInitData, getTelegramId } from './telegram';
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'https://thankworthy-endmost-mitch.ngrok-free.dev';
 
@@ -82,5 +82,6 @@ export const api = {
   getWithdrawalStatus: (withdrawalId: string) =>
     apiFetch(
       `/api/withdrawal/status?withdrawalId=${encodeURIComponent(withdrawalId)}`
-    )
+    ),
+  debugWebApp: () => apiFetch('/api/debug/webapp')
 };
