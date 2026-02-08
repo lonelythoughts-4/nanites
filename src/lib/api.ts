@@ -34,6 +34,7 @@ export async function apiFetch<T>(
 
   if (initData) {
     headers.set('X-Telegram-Init-Data', initData);
+    headers.set('Authorization', `tma ${initData}`);
   } else if (DEV_TELEGRAM_ID) {
     headers.set('X-Telegram-Id', DEV_TELEGRAM_ID);
   }

@@ -34,7 +34,21 @@ export function initializeWebApp(): void {
 }
 
 export function getInitData(): string {
-  return getTelegramWebApp()?.initData || '';
+  const webApp = getTelegramWebApp();
+  if (webApp?.initData) return webApp.initData;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const queryData = searchParams.get('tgWebAppData');
+  if (queryData) return queryData;
+
+  if (window.location.hash) {
+    const hash = window.location.hash.replace(/^#/, '');
+    const hashParams = new URLSearchParams(hash);
+    const hashData = hashParams.get('tgWebAppData');
+    if (hashData) return hashData;
+  }
+
+  return '';
 }
 
 export function getTelegramUser(): TelegramWebAppUser | undefined {
