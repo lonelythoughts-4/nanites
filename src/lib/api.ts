@@ -1,4 +1,4 @@
-import { getInitData, getTelegramUser } from './telegram';
+import { getInitData, getTelegramId } from './telegram';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -38,9 +38,9 @@ export async function apiFetch<T>(
   } else if (DEV_TELEGRAM_ID) {
     headers.set('X-Telegram-Id', DEV_TELEGRAM_ID);
   } else {
-    const tgUser = getTelegramUser();
-    if (tgUser?.id) {
-      headers.set('X-Telegram-Id', String(tgUser.id));
+    const fallbackId = getTelegramId();
+    if (fallbackId) {
+      headers.set('X-Telegram-Id', fallbackId);
     }
   }
 
