@@ -1,19 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
     import '@radix-ui/themes/styles.css';
     import { Theme } from '@radix-ui/themes';
     import { ToastContainer } from 'react-toastify';
     import 'react-toastify/dist/ReactToastify.css';
     import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-    import Home from './src/pages/Home';
+import Home from './src/pages/Home';
     import Dashboard from './src/pages/Dashboard';
     import Deposit from './src/pages/Deposit';
     import Withdraw from './src/pages/Withdraw';
     import Referrals from './src/pages/Referrals';
     import Tutorials from './src/pages/Tutorials';
-    import NotFound from './src/pages/NotFound';
+import NotFound from './src/pages/NotFound';
+import { initializeWebApp } from './src/lib/telegram';
 
     const App: React.FC = () => {
+      useEffect(() => {
+        initializeWebApp();
+      }, []);
+
       return (
         <Theme appearance="inherit" radius="large" scaling="100%">
           <Router>

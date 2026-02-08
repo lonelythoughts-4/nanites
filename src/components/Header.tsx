@@ -1,38 +1,17 @@
-import React, { useState, useEffect } from 'react';
-    import { Menu, X, Bot, User, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+    import { Menu, X, Bot, User } from 'lucide-react';
     import { Link, useLocation } from 'react-router-dom';
-    import api from '../services/api';
 
     const Header = () => {
       const [isMenuOpen, setIsMenuOpen] = useState(false);
-      const [isAdmin, setIsAdmin] = useState(false);
       const location = useLocation();
 
-      useEffect(() => {
-        checkAdminStatus();
-      }, []);
-
-      const checkAdminStatus = async () => {
-        try {
-          const admin = await api.isAdmin();
-          setIsAdmin(admin);
-        } catch (err) {
-          setIsAdmin(false);
-        }
-      };
-
       const navigation = [
-        { name: '📊 Dashboard', href: '/dashboard' },
-        { name: '💰 Deposit', href: '/deposit' },
-        { name: '📤 Withdraw', href: '/withdraw' },
-        { name: '📈 Trading', href: '/trading' },
-        { name: '👥 Referrals', href: '/referrals' },
-        { name: '📝 History', href: '/history' },
-        { name: '🔔 Notifications', href: '/notifications' },
-        { name: '📊 Stats', href: '/stats' },
-        { name: '❓ Support', href: '/support' },
-        { name: '⚙️ Settings', href: '/settings' },
-        ...(isAdmin ? [{ name: '🔐 Admin', href: '/admin' }] : [])
+        { name: 'Dashboard', href: '/' },
+        { name: 'Deposit', href: '/deposit' },
+        { name: 'Withdraw', href: '/withdraw' },
+        { name: 'Referrals', href: '/referrals' },
+        { name: 'Tutorials', href: '/tutorials' }
       ];
 
       const isActive = (href: string) => {

@@ -6,9 +6,10 @@ import React from 'react';
       address: string;
       amount?: string;
       chain: string;
+      qrData?: string;
     }
 
-    const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ address, amount, chain }) => {
+    const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ address, amount, chain, qrData }) => {
       const [copied, setCopied] = useState(false);
 
       const handleCopy = async () => {
@@ -21,8 +22,9 @@ import React from 'react';
         }
       };
 
+      const qrPayload = qrData || address;
       // Generate QR code URL using a public service
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(address)}`;
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrPayload)}`;
 
       return (
         <div className="bg-white rounded-lg border border-gray-200 p-6">

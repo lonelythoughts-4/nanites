@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App.tsx';
+import App from './App.tsx';
 import './styles.css';
 
 // Send logs to parent frame (like a preview system)
