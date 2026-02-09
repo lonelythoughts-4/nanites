@@ -18,6 +18,7 @@ const Deposit = () => {
   const [qrData, setQrData] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
+  const [sentClicked, setSentClicked] = useState(false);
   const [confirmations, setConfirmations] = useState(0);
   const [targetConfirmations, setTargetConfirmations] = useState(1);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -33,6 +34,37 @@ const Deposit = () => {
   ];
 
   const presetAmounts = [20, 50, 100, 500, 1000];
+
+  const getExplorerTxUrl = (chain: string, hash: string) => {
+    if (!hash) return '';
+    const safeHash = encodeURIComponent(hash);
+    switch (chain) {
+      case 'eth':
+        return `https://etherscan.io/tx/${safeHash}`;
+      case 'bsc':
+        return `https://bscscan.com/tx/${safeHash}`;
+      case 'sol':
+        return `https://solscan.io/tx/${safeHash}`;
+      default:
+        return '';
+    }
+  };
+
+  const formatTxHash = (hash: string) => {
+    if (!hash) return '';
+    if (hash.length <= 18) return hash;
+    return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
+  };
+
+  const handleCopyAddress = async (address: string) => {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      toast.success('Address copied.');
+    } catch (err) {
+      toast.error('Failed to copy address.');
+    }
+  };
 
   const handleAmountSelect = (value: number) => {
     setAmount(value.toString());
@@ -96,6 +128,7 @@ const Deposit = () => {
         setDepositAddress(response.address);
         setQrData(response.qr_data || '');
         setTargetConfirmations(response.expected_confirmations || 1);
+        setSentClicked(false);
         setCurrentStep(4);
       } catch (err: any) {
         toast.error(err?.message || 'Failed to request deposit address.');
@@ -105,6 +138,8 @@ const Deposit = () => {
       return;
     }
     if (currentStep === 4) {
+      if (sentClicked) return;
+      setSentClicked(true);
       setIsWaiting(true);
       setCurrentStep(5);
     }
@@ -112,6 +147,9 @@ const Deposit = () => {
 
   const handleBack = () => {
     if (currentStep > 1) {
+      if (currentStep === 4) {
+        setSentClicked(false);
+      }
       setCurrentStep(currentStep - 1);
     }
   };
@@ -123,6 +161,7 @@ const Deposit = () => {
       case 2:
         return selectedChain;
       case 3:
+      case 4:
         return true;
       default:
         return false;
@@ -277,37 +316,102 @@ const Deposit = () => {
       case 5:
         return (
           <div className="space-y-6 text-center">
-            <div>
+            <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-white p-6 shadow-[0_0_0_1px_rgba(59,130,246,0.15),0_10px_30px_rgba(59,130,246,0.18)]">
               <LoadingSpinner size="lg" className="mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Waiting for Confirmation
               </h2>
-              <p className="text-gray-600">
-                We're monitoring the blockchain for your transaction.
+              <p className="text-sm text-blue-800">
+                We are scanning the chain in real time. Once the network confirms
+                your deposit, this screen will update automatically.
               </p>
             </div>
 
-            {belowMinimum && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
-                <p className="text-sm text-yellow-900 font-semibold mb-2">
-                  Deposit below minimum
-                </p>
-                <p className="text-sm text-yellow-800">
-                  Received: ${Number(belowMinimum.received_amount || 0).toFixed(2)} <br />
-                  Minimum required: ${Number(belowMinimum.required_minimum || 0).toFixed(2)} <br />
-                  Shortfall: ${Number(belowMinimum.shortfall || 0).toFixed(2)}
-                </p>
-                {belowMinimum.address && (
-                  <p className="text-xs text-yellow-800 mt-2 break-all">
-                    Send the remaining amount to the same address:
-                    <br />
-                    <span className="font-mono">{belowMinimum.address}</span>
+            {txHash && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <p className="text-sm text-blue-800 font-semibold">Transaction detected</p>
+                {getExplorerTxUrl(selectedChain, txHash) ? (
+                  <a
+                    href={getExplorerTxUrl(selectedChain, txHash)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center text-xs font-mono text-blue-900 underline break-all"
+                    title={txHash}
+                  >
+                    {formatTxHash(txHash)} (View on explorer)
+                  </a>
+                ) : (
+                  <p className="mt-1 text-xs text-blue-900 font-mono break-all">
+                    {txHash}
                   </p>
                 )}
               </div>
             )}
 
-            <div className="bg-gray-50 rounded-lg p-6">
+            {belowMinimum && (
+              <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-50 via-yellow-50 to-white p-5 text-left shadow-[0_0_0_1px_rgba(245,158,11,0.2),0_10px_30px_rgba(245,158,11,0.15)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-amber-900 font-semibold tracking-wide uppercase">
+                      Deposit Below Minimum
+                    </p>
+                    <p className="mt-1 text-xs text-amber-700">
+                      The network detected funds, but the amount is below your tier minimum.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-amber-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-50">
+                    Action Required
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
+                  <div className="rounded-lg bg-white/70 border border-amber-200 p-3">
+                    <div className="text-amber-700">Received</div>
+                    <div className="mt-1 text-sm font-semibold text-amber-900">
+                      ${Number(belowMinimum.received_amount || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white/70 border border-amber-200 p-3">
+                    <div className="text-amber-700">Minimum</div>
+                    <div className="mt-1 text-sm font-semibold text-amber-900">
+                      ${Number(belowMinimum.required_minimum || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white/70 border border-amber-200 p-3">
+                    <div className="text-amber-700">Shortfall</div>
+                    <div className="mt-1 text-sm font-semibold text-amber-900">
+                      ${Number(belowMinimum.shortfall || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {belowMinimum.address && (
+                  <div className="mt-4 rounded-xl border border-amber-300 bg-amber-100/60 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] font-semibold text-amber-900">
+                        Send the remaining amount to the SAME address
+                      </div>
+                      <span className="rounded-full bg-amber-800 px-2 py-1 text-[9px] font-semibold uppercase tracking-widest text-amber-50">
+                        Same Address
+                      </span>
+                    </div>
+                    <div className="mt-2 font-mono text-xs text-amber-900 break-all">
+                      {belowMinimum.address}
+                    </div>
+                    <div className="mt-3 flex">
+                      <button
+                        onClick={() => handleCopyAddress(String(belowMinimum.address || ''))}
+                        className="rounded-md bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800"
+                      >
+                        Copy Address
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-blue-200 bg-white/80 p-6 text-left shadow-[0_0_0_1px_rgba(59,130,246,0.12)]">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Confirmations:</span>
@@ -329,7 +433,7 @@ const Deposit = () => {
               </div>
             </div>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-blue-700">
               This page will automatically update when your deposit is confirmed.
             </p>
           </div>
@@ -338,35 +442,50 @@ const Deposit = () => {
       case 6:
         return (
           <div className="space-y-6 text-center">
-            <div>
-              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-green-50 to-white p-6 shadow-[0_0_0_1px_rgba(16,185,129,0.18),0_10px_30px_rgba(16,185,129,0.2)]">
+              <CheckCircle className="h-16 w-16 text-emerald-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Deposit Confirmed!
               </h2>
-              <p className="text-gray-600">
-                Your deposit of ${amount} has been successfully confirmed and added
-                to your account.
+              <p className="text-sm text-emerald-800">
+                Your deposit of ${amount} has been verified and credited to your account.
               </p>
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <div className="rounded-2xl border border-emerald-200 bg-white/80 p-6 text-left shadow-[0_0_0_1px_rgba(16,185,129,0.12)]">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-green-700">Amount Deposited:</span>
-                  <span className="font-semibold text-green-900">
+                  <span className="text-emerald-700">Amount Deposited:</span>
+                  <span className="font-semibold text-emerald-900">
                     ${receivedAmount ?? amount}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-green-700">Transaction Hash:</span>
-                  <span className="font-mono text-sm text-green-900">
-                    {txHash ? `${txHash.slice(0, 8)}...${txHash.slice(-6)}` : 'N/A'}
-                  </span>
+                  <span className="text-emerald-700">Transaction Hash:</span>
+                  {txHash ? (
+                    getExplorerTxUrl(selectedChain, txHash) ? (
+                      <a
+                        href={getExplorerTxUrl(selectedChain, txHash)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-sm text-emerald-900 underline"
+                        title={txHash}
+                      >
+                        {formatTxHash(txHash)}
+                      </a>
+                    ) : (
+                      <span className="font-mono text-sm text-emerald-900">
+                        {formatTxHash(txHash)}
+                      </span>
+                    )
+                  ) : (
+                    <span className="font-mono text-sm text-emerald-900">N/A</span>
+                  )}
                 </div>
               </div>
             </div>
 
-            <p className="text-sm text-gray-600">
+            <p className="text-xs text-emerald-700">
               Your balance and tier will update shortly. You can now return to your
               dashboard.
             </p>
@@ -444,7 +563,7 @@ const Deposit = () => {
 
               <button
                 onClick={handleNext}
-                disabled={!canProceed() || isWaiting}
+                disabled={!canProceed() || isWaiting || (currentStep === 4 && sentClicked)}
                 className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {currentStep === 4 ? 'I sent the funds' : 'Next'}
