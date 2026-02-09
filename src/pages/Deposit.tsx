@@ -76,9 +76,7 @@ const Deposit = () => {
     return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
   };
 
-  const supportChatUrl =
-    import.meta.env.VITE_SUPPORT_CHAT_URL ||
-    `https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'rogueezbot'}`;
+  const supportChatUrl = 'https://t.me/RogueEngineSupport';
 
   const handleCopyAddress = async (address: string) => {
     if (!address) return;
