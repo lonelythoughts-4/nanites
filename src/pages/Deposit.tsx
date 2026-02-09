@@ -102,7 +102,7 @@ const Deposit = () => {
   const checkStatus = async () => {
     if (!depositId) return;
     try {
-      const status = await api.getDepositStatus(depositId);
+      const status = await api.getDepositStatus(depositId) as any;
       setConfirmations(status.confirmations || 0);
       setTargetConfirmations(status.target_confirmations || targetConfirmations || 1);
       setTxHash(status.tx_hash || null);
@@ -155,7 +155,7 @@ const Deposit = () => {
     if (currentStep === 3) {
       setIsGenerating(true);
       try {
-        const response = await api.requestDeposit(Number(amount), selectedChain);
+        const response = await api.requestDeposit(Number(amount), selectedChain) as any;
         if (!response.address || !response.deposit_id) {
           throw new Error('Deposit address could not be created.');
         }
