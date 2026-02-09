@@ -48,12 +48,24 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json');
   }
 
+  // Skip ngrok browser warning HTML interstitial
+  if (API_BASE_URL.includes('ngrok-free.dev')) {
+    headers.set('ngrok-skip-browser-warning', '1');
+  }
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers
   });
 
   if (!res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      const text = await res.text();
+      throw new Error(
+        `API returned HTML (check VITE_API_BASE_URL or ngrok warning). Status ${res.status}.`
+      );
+    }
     const message = await parseErrorResponse(res);
     throw new Error(message || 'Request failed');
   }
