@@ -22,6 +22,7 @@ const Deposit = () => {
   const [targetConfirmations, setTargetConfirmations] = useState(1);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [receivedAmount, setReceivedAmount] = useState<number | null>(null);
+  const [belowMinimum, setBelowMinimum] = useState<any>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -56,7 +57,12 @@ const Deposit = () => {
       if (status.status === 'confirmed') {
         stopPolling();
         setIsWaiting(false);
+        setBelowMinimum(null);
         setCurrentStep(6);
+      } else if (status.status === 'below_minimum') {
+        setBelowMinimum(status);
+      } else {
+        setBelowMinimum(null);
       }
     } catch (err: any) {
       console.error('Deposit status error:', err);
@@ -280,6 +286,26 @@ const Deposit = () => {
                 We're monitoring the blockchain for your transaction.
               </p>
             </div>
+
+            {belowMinimum && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
+                <p className="text-sm text-yellow-900 font-semibold mb-2">
+                  Deposit below minimum
+                </p>
+                <p className="text-sm text-yellow-800">
+                  Received: ${Number(belowMinimum.received_amount || 0).toFixed(2)} <br />
+                  Minimum required: ${Number(belowMinimum.required_minimum || 0).toFixed(2)} <br />
+                  Shortfall: ${Number(belowMinimum.shortfall || 0).toFixed(2)}
+                </p>
+                {belowMinimum.address && (
+                  <p className="text-xs text-yellow-800 mt-2 break-all">
+                    Send the remaining amount to the same address:
+                    <br />
+                    <span className="font-mono">{belowMinimum.address}</span>
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="bg-gray-50 rounded-lg p-6">
               <div className="space-y-2">
