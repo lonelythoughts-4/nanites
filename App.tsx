@@ -12,13 +12,14 @@ import Home from './src/pages/Home';
     import Referrals from './src/pages/Referrals';
     import Tutorials from './src/pages/Tutorials';
 import NotFound from './src/pages/NotFound';
-import { initializeWebApp } from './src/lib/telegram';
+import { initializeWebApp, enforceInitDataFreshness } from './src/lib/telegram';
 import WebAppNotice from './src/components/WebAppNotice';
 
     const App: React.FC = () => {
-      useEffect(() => {
-        initializeWebApp();
-      }, []);
+    useEffect(() => {
+      initializeWebApp();
+      enforceInitDataFreshness();
+    }, []);
 
       return (
         <Theme appearance="inherit" radius="large" scaling="100%">
