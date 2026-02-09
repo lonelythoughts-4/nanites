@@ -26,6 +26,23 @@ export function getTelegramWebApp(): TelegramWebApp | undefined {
   return window.Telegram?.WebApp;
 }
 
+function getRawParam(source: string, name: string): string {
+  if (!source) return '';
+  const normalized = source.startsWith('#') ? source.replace(/^#/, '?') : source;
+  const match = normalized.match(new RegExp(`[?&]${name}=([^&]*)`));
+  return match ? match[1] : '';
+}
+
+function decodeParamValue(value: string): string {
+  if (!value) return '';
+  try {
+    // decode percent-encoding only; preserve '+' as '+'
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export function initializeWebApp(): void {
   const webApp = getTelegramWebApp();
   if (!webApp) return;
@@ -45,15 +62,12 @@ export function getInitData(): string {
   const webApp = getTelegramWebApp();
   if (webApp?.initData) return webApp.initData;
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const queryData = searchParams.get('tgWebAppData');
-  if (queryData) return queryData;
+  const rawQueryData = getRawParam(window.location.search, 'tgWebAppData');
+  if (rawQueryData) return decodeParamValue(rawQueryData);
 
   if (window.location.hash) {
-    const hash = window.location.hash.replace(/^#/, '');
-    const hashParams = new URLSearchParams(hash);
-    const hashData = hashParams.get('tgWebAppData');
-    if (hashData) return hashData;
+    const rawHashData = getRawParam(window.location.hash, 'tgWebAppData');
+    if (rawHashData) return decodeParamValue(rawHashData);
   }
 
   return '';
