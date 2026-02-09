@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://thankworthy-endmost-mitch.ngrok-free.dev/api/:path*"
+      "destination": "https://devices-mon-territory-sonic.trycloudflare.com/api/:path*"
     },
     {
       "source": "/ping",
-      "destination": "https://thankworthy-endmost-mitch.ngrok-free.dev/ping"
+      "destination": "https://devices-mon-territory-sonic.trycloudflare.com/ping"
     }
   ]
 }
