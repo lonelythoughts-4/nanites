@@ -236,10 +236,36 @@ export function clearTelegramLoginData(): void {
   }
 }
 
+function parseUserFromInitData(raw: string): { username?: string; first_name?: string } | null {
+  if (!raw) return null;
+  try {
+    const params = new URLSearchParams(raw);
+    const userParam = params.get('user');
+    if (!userParam) return null;
+    let decoded = userParam;
+    try {
+      decoded = decodeURIComponent(userParam);
+    } catch {
+      // ignore decode errors
+    }
+    const parsed = JSON.parse(decoded) as { username?: string; first_name?: string };
+    return parsed || null;
+  } catch {
+    return null;
+  }
+}
+
 export function getTelegramDisplayName(): string {
   const user = getTelegramUser();
   if (user?.username) return user.username;
   if (user?.first_name) return user.first_name;
+
+  const initData = getInitData();
+  if (initData) {
+    const parsedUser = parseUserFromInitData(initData);
+    if (parsedUser?.username) return parsedUser.username;
+    if (parsedUser?.first_name) return parsedUser.first_name;
+  }
 
   try {
     const rawLogin = getTelegramLoginData();

@@ -12,10 +12,32 @@ const LaunchGate = ({ onEnter }: LaunchGateProps) => {
   });
 
   useEffect(() => {
-    const name = getTelegramDisplayName();
-    if (name) {
-      setDisplayName(name.startsWith('@') ? name.slice(1) : name);
-    }
+    let active = true;
+    let attempts = 0;
+
+    const updateName = () => {
+      const name = getTelegramDisplayName();
+      if (name) {
+        const cleaned = name.startsWith('@') ? name.slice(1) : name;
+        if (active) setDisplayName(cleaned);
+        return true;
+      }
+      return false;
+    };
+
+    if (updateName()) return () => { active = false; };
+
+    const interval = setInterval(() => {
+      attempts += 1;
+      if (updateName() || attempts >= 20) {
+        clearInterval(interval);
+      }
+    }, 500);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const possessive = displayName.endsWith('s')
