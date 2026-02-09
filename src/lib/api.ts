@@ -2,7 +2,7 @@ import { getInitData, getTelegramId, getTelegramLoginData } from './telegram';
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://devices-mon-territory-sonic.trycloudflare.com';
+  'https://mambo-authorization-similar-packages.trycloudflare.com';
 
 const DEV_TELEGRAM_ID = import.meta.env.VITE_DEV_TELEGRAM_ID || '';
 

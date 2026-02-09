@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://devices-mon-territory-sonic.trycloudflare.com/api/:path*"
+      "destination": "https://mambo-authorization-similar-packages.trycloudflare.com/api/:path*"
     },
     {
       "source": "/ping",
-      "destination": "https://devices-mon-territory-sonic.trycloudflare.com/ping"
+      "destination": "https://mambo-authorization-similar-packages.trycloudflare.com/ping"
     }
   ]
 }
