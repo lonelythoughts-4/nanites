@@ -30,7 +30,7 @@ const TelegramLoginWidget = ({ compact = false }: TelegramLoginWidgetProps) => {
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.async = true;
       script.setAttribute('data-telegram-login', BOT_USERNAME);
-      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-size', compact ? 'small' : 'large');
       script.setAttribute('data-userpic', 'false');
       script.setAttribute('data-request-access', 'write');
       script.setAttribute('data-onauth', 'onTelegramAuth(user)');
@@ -56,7 +56,10 @@ const TelegramLoginWidget = ({ compact = false }: TelegramLoginWidgetProps) => {
       <div className={compact ? 'mt-1 text-[11px]' : 'mt-1 text-xs'}>
         If you are not inside Telegram WebApp, use this to verify your account.
       </div>
-      <div className={compact ? 'mt-2' : 'mt-3'} ref={containerRef} />
+      <div
+        className={compact ? 'mt-2 flex max-w-full justify-center overflow-x-auto' : 'mt-3 flex max-w-full justify-center overflow-x-auto'}
+        ref={containerRef}
+      />
       {!ready && (
         <div className={compact ? 'mt-1 text-[11px] text-yellow-700' : 'mt-2 text-xs text-yellow-700'}>
           Loading widget...
