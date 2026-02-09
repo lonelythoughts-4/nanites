@@ -19,6 +19,11 @@ const Deposit = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
   const [sentClicked, setSentClicked] = useState(false);
+  const [waitStartedAt, setWaitStartedAt] = useState<number | null>(null);
+  const [waitElapsedSec, setWaitElapsedSec] = useState(0);
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
+  const [pollCount, setPollCount] = useState(0);
+  const [manualChecking, setManualChecking] = useState(false);
   const [confirmations, setConfirmations] = useState(0);
   const [targetConfirmations, setTargetConfirmations] = useState(1);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -50,11 +55,30 @@ const Deposit = () => {
     }
   };
 
+  const getExplorerAddressUrl = (chain: string, address: string) => {
+    if (!address) return '';
+    const safeAddress = encodeURIComponent(address);
+    switch (chain) {
+      case 'eth':
+        return `https://etherscan.io/address/${safeAddress}`;
+      case 'bsc':
+        return `https://bscscan.com/address/${safeAddress}`;
+      case 'sol':
+        return `https://solscan.io/account/${safeAddress}`;
+      default:
+        return '';
+    }
+  };
+
   const formatTxHash = (hash: string) => {
     if (!hash) return '';
     if (hash.length <= 18) return hash;
     return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
   };
+
+  const supportChatUrl =
+    import.meta.env.VITE_SUPPORT_CHAT_URL ||
+    `https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'rogueezbot'}`;
 
   const handleCopyAddress = async (address: string) => {
     if (!address) return;
@@ -85,6 +109,8 @@ const Deposit = () => {
       setTargetConfirmations(status.target_confirmations || targetConfirmations || 1);
       setTxHash(status.tx_hash || null);
       setReceivedAmount(status.received_amount || null);
+      setLastCheckedAt(Date.now());
+      setPollCount((prev) => prev + 1);
 
       if (status.status === 'confirmed') {
         stopPolling();
@@ -108,6 +134,17 @@ const Deposit = () => {
     return () => stopPolling();
   }, [currentStep, depositId]);
 
+  useEffect(() => {
+    if (currentStep !== 5) return;
+    const start = waitStartedAt ?? Date.now();
+    if (!waitStartedAt) setWaitStartedAt(start);
+    setWaitElapsedSec(Math.floor((Date.now() - start) / 1000));
+    const interval = setInterval(() => {
+      setWaitElapsedSec(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentStep, waitStartedAt]);
+
   const handleNext = async () => {
     if (currentStep === 1 && amount) {
       setCurrentStep(2);
@@ -129,6 +166,10 @@ const Deposit = () => {
         setQrData(response.qr_data || '');
         setTargetConfirmations(response.expected_confirmations || 1);
         setSentClicked(false);
+        setWaitStartedAt(null);
+        setWaitElapsedSec(0);
+        setLastCheckedAt(null);
+        setPollCount(0);
         setCurrentStep(4);
       } catch (err: any) {
         toast.error(err?.message || 'Failed to request deposit address.');
@@ -151,6 +192,16 @@ const Deposit = () => {
         setSentClicked(false);
       }
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleManualCheck = async () => {
+    if (manualChecking) return;
+    setManualChecking(true);
+    try {
+      await checkStatus();
+    } finally {
+      setManualChecking(false);
     }
   };
 
@@ -325,6 +376,14 @@ const Deposit = () => {
                 We are scanning the chain in real time. Once the network confirms
                 your deposit, this screen will update automatically.
               </p>
+              <div className="mt-3 text-xs text-blue-700">
+                {lastCheckedAt ? (
+                  <span>
+                    Last check: {Math.max(0, Math.floor((Date.now() - lastCheckedAt) / 1000))}s ago •{' '}
+                  </span>
+                ) : null}
+                Elapsed: {Math.floor(waitElapsedSec / 60)}m {waitElapsedSec % 60}s
+              </div>
             </div>
 
             {txHash && (
@@ -344,6 +403,71 @@ const Deposit = () => {
                   <p className="mt-1 text-xs text-blue-900 font-mono break-all">
                     {txHash}
                   </p>
+                )}
+              </div>
+            )}
+
+            {!txHash && waitElapsedSec >= 60 && (
+              <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-slate-50 to-white p-5 text-left shadow-[0_0_0_1px_rgba(99,102,241,0.18),0_10px_30px_rgba(99,102,241,0.15)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-indigo-900 font-semibold tracking-wide uppercase">
+                      No Transaction Detected Yet
+                    </p>
+                    <p className="mt-1 text-xs text-indigo-700">
+                      If you already sent funds, it can take a few minutes to appear on-chain.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-indigo-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-indigo-50">
+                    Pending
+                  </span>
+                </div>
+                <div className="mt-4 text-xs text-indigo-800 space-y-2">
+                  <div>1. Confirm you sent on {selectedChain.toUpperCase()} only.</div>
+                  <div>2. Double-check the address below.</div>
+                  <div>3. Wait for network confirmation (may take several minutes).</div>
+                </div>
+                <div className="mt-4 text-xs text-indigo-700">
+                  Need help?{' '}
+                  <a
+                    href={supportChatUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold underline"
+                  >
+                    Contact support
+                  </a>
+                  .
+                </div>
+                {depositAddress && (
+                  <div className="mt-4 rounded-xl border border-indigo-200 bg-white/80 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] font-semibold text-indigo-900">
+                        Deposit Address (same address)
+                      </div>
+                      {getExplorerAddressUrl(selectedChain, depositAddress) ? (
+                        <a
+                          href={getExplorerAddressUrl(selectedChain, depositAddress)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] font-semibold text-indigo-700 underline"
+                        >
+                          View on explorer
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 font-mono text-xs text-indigo-900 break-all">
+                      {depositAddress}
+                    </div>
+                    <div className="mt-3 flex">
+                      <button
+                        onClick={() => handleCopyAddress(depositAddress)}
+                        className="rounded-md bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800"
+                      >
+                        Copy Address
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -433,9 +557,18 @@ const Deposit = () => {
               </div>
             </div>
 
-            <p className="text-xs text-blue-700">
-              This page will automatically update when your deposit is confirmed.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={handleManualCheck}
+                disabled={manualChecking}
+                className="rounded-md border border-blue-200 bg-white px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+              >
+                {manualChecking ? 'Checking...' : 'Refresh Status'}
+              </button>
+              <p className="text-xs text-blue-700">
+                This page will automatically update when your deposit is confirmed.
+              </p>
+            </div>
           </div>
         );
 
