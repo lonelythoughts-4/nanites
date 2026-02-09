@@ -17,7 +17,7 @@ import WebAppNotice from './src/components/WebAppNotice';
 import LaunchGate from './src/components/LaunchGate';
 
     const App: React.FC = () => {
-    const launchGateEnabled = import.meta.env.VITE_LAUNCH_GATE_ENABLED === 'true';
+    const launchGateEnabled = true;
     const [gateDismissed, setGateDismissed] = useState(() => {
       try {
         return sessionStorage.getItem('rogue_launch_gate_seen') === '1';
