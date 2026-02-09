@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [cycleInfo, setCycleInfo] = useState<any>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [continuing, setContinuing] = useState(false);
+  const [showContinueModal, setShowContinueModal] = useState(false);
 
   const fetchAll = async (showSpinner: boolean) => {
     if (showSpinner) setLoading(true);
@@ -81,6 +82,7 @@ const Dashboard = () => {
     try {
       await api.continueCycle();
       toast.success('Cycle continued. A new 14-day cycle has started.');
+      setShowContinueModal(false);
       await fetchAll(false);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to continue cycle.');
@@ -160,6 +162,9 @@ const Dashboard = () => {
       (cycleInfo?.frozen_profit ?? frozenProfit) ??
       0
   );
+  const projectedBalance = Number.isFinite(availableBalance + cycleProfit)
+    ? availableBalance + cycleProfit
+    : totalBalance;
 
   const recentTransactions = dashboard?.recent_transactions || [];
   const referralLink = referrals?.referral_link || '-';
@@ -304,7 +309,7 @@ const Dashboard = () => {
                     </div>
                     <div className="mt-3 flex flex-col sm:flex-row gap-3">
                       <button
-                        onClick={handleContinueCycle}
+                        onClick={() => setShowContinueModal(true)}
                         disabled={continuing}
                         className="flex-1 bg-amber-600 text-white text-center py-2 px-4 rounded-md hover:bg-amber-700 transition-colors disabled:opacity-60"
                       >
@@ -533,6 +538,66 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {showContinueModal && canContinue && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <button
+              aria-label="Close"
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowContinueModal(false)}
+            />
+            <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Continue Cycle?
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Your cycle is complete. Continuing will compound your profits
+                into your balance and start a new 14‑day cycle.
+              </p>
+
+              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                <div className="flex justify-between">
+                  <span>Available Balance</span>
+                  <span className="font-medium">
+                    ${availableBalance.toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-2 flex justify-between">
+                  <span>Profit to Compound</span>
+                  <span className="font-medium text-green-700">
+                    ${cycleProfit.toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-3 flex justify-between border-t border-gray-200 pt-3">
+                  <span>Projected New Balance</span>
+                  <span className="font-semibold text-gray-900">
+                    ${projectedBalance.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Tier updates are applied automatically based on your new balance.
+              </p>
+
+              <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowContinueModal(false)}
+                  className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleContinueCycle}
+                  disabled={continuing}
+                  className="flex-1 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+                >
+                  {continuing ? 'Continuing...' : 'Confirm & Continue'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />
