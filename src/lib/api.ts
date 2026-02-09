@@ -89,6 +89,10 @@ export const api = {
   getReferrals: () => apiFetch('/api/referrals'),
   getTier: () => apiFetch('/api/user/tier'),
   getCycle: () => apiFetch('/api/user/cycle'),
+  continueCycle: () =>
+    apiFetch('/api/trading/continue', {
+      method: 'POST'
+    }),
   getBalance: () => apiFetch('/api/user/balance'),
   requestDeposit: (amount: number, chain: string) =>
     apiFetch('/api/deposit/request', {

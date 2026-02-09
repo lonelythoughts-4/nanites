@@ -30,6 +30,7 @@ const Dashboard = () => {
   const [tierInfo, setTierInfo] = useState<any>(null);
   const [cycleInfo, setCycleInfo] = useState<any>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [continuing, setContinuing] = useState(false);
 
   const fetchAll = async (showSpinner: boolean) => {
     if (showSpinner) setLoading(true);
@@ -73,6 +74,19 @@ const Dashboard = () => {
 
   const handleRefresh = async () => {
     await fetchAll(false);
+  };
+
+  const handleContinueCycle = async () => {
+    setContinuing(true);
+    try {
+      await api.continueCycle();
+      toast.success('Cycle continued. A new 14-day cycle has started.');
+      await fetchAll(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to continue cycle.');
+    } finally {
+      setContinuing(false);
+    }
   };
 
   const handleCopyReferral = async () => {
@@ -140,6 +154,12 @@ const Dashboard = () => {
     cycleInfo?.days_remaining != null
       ? ((TOTAL_CYCLE_DAYS - daysRemaining) / TOTAL_CYCLE_DAYS) * 100
       : dashboard?.cycle?.progress ?? 0;
+  const canContinue = !!cycleInfo?.can_continue;
+  const cycleProfit = Number(
+    cycleInfo?.profit_earned ??
+      (cycleInfo?.frozen_profit ?? frozenProfit) ??
+      0
+  );
 
   const recentTransactions = dashboard?.recent_transactions || [];
   const referralLink = referrals?.referral_link || '-';
@@ -277,6 +297,28 @@ const Dashboard = () => {
                 </h2>
               </div>
               <div className="p-6">
+                {canContinue && (
+                  <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="text-sm text-amber-800 font-medium">
+                      Cycle complete. Profit ready: ${cycleProfit.toLocaleString()}
+                    </div>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={handleContinueCycle}
+                        disabled={continuing}
+                        className="flex-1 bg-amber-600 text-white text-center py-2 px-4 rounded-md hover:bg-amber-700 transition-colors disabled:opacity-60"
+                      >
+                        {continuing ? 'Continuing...' : 'Continue Cycle'}
+                      </button>
+                      <Link
+                        to="/withdraw"
+                        className="flex-1 bg-white border border-amber-300 text-amber-800 text-center py-2 px-4 rounded-md hover:bg-amber-100 transition-colors"
+                      >
+                        Withdraw Profit
+                      </Link>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">
