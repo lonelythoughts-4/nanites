@@ -15,6 +15,7 @@ import NotFound from './src/pages/NotFound';
 import { initializeWebApp, enforceInitDataFreshness } from './src/lib/telegram';
 import WebAppNotice from './src/components/WebAppNotice';
 import LaunchGate from './src/components/LaunchGate';
+import LaunchLoading from './src/components/LaunchLoading';
 
     const App: React.FC = () => {
     const launchGateEnabled = true;
@@ -25,6 +26,7 @@ import LaunchGate from './src/components/LaunchGate';
         return false;
       }
     });
+    const [showLaunchLoading, setShowLaunchLoading] = useState(false);
 
     useEffect(() => {
       initializeWebApp();
@@ -34,16 +36,25 @@ import LaunchGate from './src/components/LaunchGate';
     if (launchGateEnabled && !gateDismissed) {
       return (
         <Theme appearance="inherit" radius="large" scaling="100%">
-          <LaunchGate
-            onEnter={() => {
-              try {
-                sessionStorage.setItem('rogue_launch_gate_seen', '1');
-              } catch {
-                // ignore
-              }
-              setGateDismissed(true);
-            }}
-          />
+          {showLaunchLoading ? (
+            <LaunchLoading
+              onComplete={() => {
+                try {
+                  sessionStorage.setItem('rogue_launch_gate_seen', '1');
+                } catch {
+                  // ignore
+                }
+                setGateDismissed(true);
+                setShowLaunchLoading(false);
+              }}
+            />
+          ) : (
+            <LaunchGate
+              onEnter={() => {
+                setShowLaunchLoading(true);
+              }}
+            />
+          )}
         </Theme>
       );
     }
