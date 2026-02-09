@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api, API_BASE_URL } from '../lib/api';
-import { getInitData, getTelegramId } from '../lib/telegram';
+import { getInitData, getTelegramId, getTelegramLoginData } from '../lib/telegram';
 import { Copy } from 'lucide-react';
 
 const WebAppDiagnostics = () => {
@@ -17,6 +17,8 @@ const WebAppDiagnostics = () => {
         apiBase: API_BASE_URL,
         initDataPresent: !!getInitData(),
         initDataLength: getInitData()?.length || 0,
+        loginDataPresent: !!getTelegramLoginData(),
+        loginDataLength: getTelegramLoginData()?.length || 0,
         telegramId: getTelegramId() || null,
         server: data
       });

@@ -26,6 +26,8 @@ export function getTelegramWebApp(): TelegramWebApp | undefined {
   return window.Telegram?.WebApp;
 }
 
+const LOGIN_STORAGE_KEY = 'tg_login_data';
+
 function getRawParam(source: string, name: string): string {
   if (!source) return '';
   const normalized = source.startsWith('#') ? source.replace(/^#/, '?') : source;
@@ -97,4 +99,28 @@ export function getTelegramId(): string {
   }
 
   return '';
+}
+
+export function setTelegramLoginData(data: unknown): void {
+  try {
+    localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getTelegramLoginData(): string {
+  try {
+    return localStorage.getItem(LOGIN_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function clearTelegramLoginData(): void {
+  try {
+    localStorage.removeItem(LOGIN_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
 }
