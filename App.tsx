@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
     import '@radix-ui/themes/styles.css';
     import { Theme } from '@radix-ui/themes';
 import { ToastContainer } from 'react-toastify';
@@ -14,12 +14,39 @@ import Home from './src/pages/Home';
 import NotFound from './src/pages/NotFound';
 import { initializeWebApp, enforceInitDataFreshness } from './src/lib/telegram';
 import WebAppNotice from './src/components/WebAppNotice';
+import LaunchGate from './src/components/LaunchGate';
 
     const App: React.FC = () => {
+    const launchGateEnabled = import.meta.env.VITE_LAUNCH_GATE_ENABLED === 'true';
+    const [gateDismissed, setGateDismissed] = useState(() => {
+      try {
+        return sessionStorage.getItem('rogue_launch_gate_seen') === '1';
+      } catch {
+        return false;
+      }
+    });
+
     useEffect(() => {
       initializeWebApp();
       enforceInitDataFreshness();
     }, []);
+
+    if (launchGateEnabled && !gateDismissed) {
+      return (
+        <Theme appearance="inherit" radius="large" scaling="100%">
+          <LaunchGate
+            onEnter={() => {
+              try {
+                sessionStorage.setItem('rogue_launch_gate_seen', '1');
+              } catch {
+                // ignore
+              }
+              setGateDismissed(true);
+            }}
+          />
+        </Theme>
+      );
+    }
 
       return (
         <Theme appearance="inherit" radius="large" scaling="100%">
