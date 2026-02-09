@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getTelegramDisplayName } from '../lib/telegram';
+import { getTelegramDisplayName, cacheTelegramProfile } from '../lib/telegram';
+import { api } from '../lib/api';
 
 type LaunchGateProps = {
   onEnter: () => void;
@@ -39,6 +40,29 @@ const LaunchGate = ({ onEnter }: LaunchGateProps) => {
       clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const fallback = 'Runner';
+    const current = displayName || fallback;
+    if (current !== fallback) return () => { active = false; };
+
+    api.getDashboard()
+      .then((data: any) => {
+        const name = data?.user?.username || data?.user?.first_name;
+        if (!name || !active) return;
+        cacheTelegramProfile({ username: data?.user?.username, first_name: data?.user?.first_name });
+        const cleaned = name.startsWith('@') ? name.slice(1) : name;
+        setDisplayName(cleaned);
+      })
+      .catch(() => {
+        // ignore fetch failures
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [displayName]);
 
   const possessive = displayName.endsWith('s')
     ? `${displayName}'`

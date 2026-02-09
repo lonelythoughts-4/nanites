@@ -138,14 +138,7 @@ export function initializeWebApp(): void {
     }
   }
   const user = webApp.initDataUnsafe?.user;
-  if (user) {
-    try {
-      if (user.username) localStorage.setItem(USERNAME_STORAGE_KEY, user.username);
-      if (user.first_name) localStorage.setItem(FIRSTNAME_STORAGE_KEY, user.first_name);
-    } catch {
-      // ignore storage errors
-    }
-  }
+  if (user) cacheTelegramProfile({ username: user.username, first_name: user.first_name });
 }
 
 export function getInitData(): string {
@@ -231,6 +224,16 @@ export function getTelegramLoginData(): string {
 export function clearTelegramLoginData(): void {
   try {
     localStorage.removeItem(LOGIN_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function cacheTelegramProfile(profile: { username?: string; first_name?: string }): void {
+  if (!profile) return;
+  try {
+    if (profile.username) localStorage.setItem(USERNAME_STORAGE_KEY, profile.username);
+    if (profile.first_name) localStorage.setItem(FIRSTNAME_STORAGE_KEY, profile.first_name);
   } catch {
     // ignore storage errors
   }
