@@ -1,14 +1,23 @@
-import React from 'react';
-import { getTelegramUser } from '../lib/telegram';
+import React, { useEffect, useState } from 'react';
+import { getTelegramDisplayName } from '../lib/telegram';
 
 type LaunchGateProps = {
   onEnter: () => void;
 };
 
 const LaunchGate = ({ onEnter }: LaunchGateProps) => {
-  const user = getTelegramUser();
-  const rawName = user?.username || user?.first_name || 'Runner';
-  const displayName = rawName.startsWith('@') ? rawName.slice(1) : rawName;
+  const [displayName, setDisplayName] = useState(() => {
+    const initial = getTelegramDisplayName() || 'Runner';
+    return initial.startsWith('@') ? initial.slice(1) : initial;
+  });
+
+  useEffect(() => {
+    const name = getTelegramDisplayName();
+    if (name) {
+      setDisplayName(name.startsWith('@') ? name.slice(1) : name);
+    }
+  }, []);
+
   const possessive = displayName.endsWith('s')
     ? `${displayName}'`
     : `${displayName}'s`;

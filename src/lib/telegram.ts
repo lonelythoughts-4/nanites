@@ -31,6 +31,8 @@ const LOGIN_STORAGE_KEY = 'tg_login_data';
 const INIT_STORAGE_KEY = 'tg_init_data';
 const INIT_TS_KEY = 'tg_init_data_ts';
 const INIT_REDIRECT_KEY = 'tg_init_redirected';
+const USERNAME_STORAGE_KEY = 'tg_user_name';
+const FIRSTNAME_STORAGE_KEY = 'tg_user_first_name';
 const INIT_MAX_AGE_SEC = Number(
   import.meta.env.VITE_WEBAPP_AUTH_MAX_AGE_SEC || 86400
 );
@@ -135,6 +137,15 @@ export function initializeWebApp(): void {
       // ignore storage errors
     }
   }
+  const user = webApp.initDataUnsafe?.user;
+  if (user) {
+    try {
+      if (user.username) localStorage.setItem(USERNAME_STORAGE_KEY, user.username);
+      if (user.first_name) localStorage.setItem(FIRSTNAME_STORAGE_KEY, user.first_name);
+    } catch {
+      // ignore storage errors
+    }
+  }
 }
 
 export function getInitData(): string {
@@ -223,4 +234,32 @@ export function clearTelegramLoginData(): void {
   } catch {
     // ignore storage errors
   }
+}
+
+export function getTelegramDisplayName(): string {
+  const user = getTelegramUser();
+  if (user?.username) return user.username;
+  if (user?.first_name) return user.first_name;
+
+  try {
+    const rawLogin = getTelegramLoginData();
+    if (rawLogin) {
+      const parsed = JSON.parse(rawLogin) as { username?: string; first_name?: string };
+      if (parsed?.username) return parsed.username;
+      if (parsed?.first_name) return parsed.first_name;
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  try {
+    const cachedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
+    if (cachedUsername) return cachedUsername;
+    const cachedFirstName = localStorage.getItem(FIRSTNAME_STORAGE_KEY);
+    if (cachedFirstName) return cachedFirstName;
+  } catch {
+    // ignore storage errors
+  }
+
+  return '';
 }
