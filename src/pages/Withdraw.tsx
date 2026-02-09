@@ -16,6 +16,9 @@ const Withdraw = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [withdrawalId, setWithdrawalId] = useState('');
   const [withdrawalStatus, setWithdrawalStatus] = useState<string | null>(null);
+  const [submittedAmount, setSubmittedAmount] = useState<number | null>(null);
+  const [submittedAddress, setSubmittedAddress] = useState<string>('');
+  const [submittedChain, setSubmittedChain] = useState<string>('');
   const [confirmations, setConfirmations] = useState(0);
   const [targetConfirmations, setTargetConfirmations] = useState(0);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -98,6 +101,9 @@ const Withdraw = () => {
       );
       setWithdrawalId(response.withdrawal_id);
       setWithdrawalStatus(response.status || 'pending');
+      setSubmittedAmount(numericAmount);
+      setSubmittedAddress(recipientAddress.trim());
+      setSubmittedChain(selectedChain);
       setIsPolling(true);
       toast.success('Withdrawal request submitted.');
     } catch (err: any) {
@@ -111,6 +117,26 @@ const Withdraw = () => {
   const feeAmount = amount ? Number(amount) * FEE_PERCENT : 0;
   const isFormValid =
     Number(amount) >= MIN_AMOUNT && !!selectedChain && !!recipientAddress.trim();
+
+  const statusLabels: Record<string, string> = {
+    pending: 'Pending review',
+    pending_approval: 'Awaiting admin approval',
+    processing: 'Processing withdrawal',
+    approved: 'Approved',
+    pending_confirmations: 'Awaiting confirmations',
+    completed: 'Completed',
+    failed: 'Failed',
+    denied: 'Denied',
+    rejected: 'Rejected',
+    refunded: 'Refunded'
+  };
+
+  const statusKey = withdrawalStatus || 'pending';
+  const showOnTheWay = ['approved', 'processing', 'pending_confirmations', 'completed'].includes(statusKey);
+  const displayAmount = submittedAmount ?? (amount ? Number(amount) : 0);
+  const displayNet = displayAmount * (1 - FEE_PERCENT);
+  const displayAddress = submittedAddress || recipientAddress;
+  const catchphrase = 'RougeRunner never sleeps — keep your edge sharp.';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -229,21 +255,25 @@ const Withdraw = () => {
           <div className="mt-8 bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Withdrawal Status</h3>
-              {isPolling ? (
-                <div className="flex items-center text-sm text-gray-500">
-                  <Clock className="h-4 w-4 mr-2" /> Updating...
-                </div>
-              ) : (
+              <div className="flex items-center gap-3">
+                {isPolling && (
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Clock className="h-4 w-4 mr-2" /> Auto refresh
+                  </div>
+                )}
                 <button
-                  onClick={() => {
-                    setIsPolling(true);
-                    checkStatus();
-                  }}
+                  onClick={() => checkStatus()}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
-                  Check Status
+                  Refresh now
                 </button>
-              )}
+                <button
+                  onClick={() => setIsPolling(!isPolling)}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  {isPolling ? 'Pause' : 'Auto refresh'}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
@@ -253,7 +283,7 @@ const Withdraw = () => {
               </div>
               <div className="flex justify-between">
                 <span>Status</span>
-                <span className="font-semibold">{withdrawalStatus || 'pending'}</span>
+                <span className="font-semibold">{statusLabels[statusKey] || statusKey}</span>
               </div>
               <div className="flex justify-between">
                 <span>Confirmations</span>
@@ -268,6 +298,23 @@ const Withdraw = () => {
                 </span>
               </div>
             </div>
+
+            {showOnTheWay && displayAddress && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-800">
+                <div className="font-semibold">
+                  Your ${displayNet.toFixed(2)} is on its way to:
+                </div>
+                <div className="font-mono text-xs break-all mt-1">
+                  {displayAddress}
+                </div>
+                {submittedChain && (
+                  <div className="text-xs mt-1">
+                    Network: {submittedChain.toUpperCase()}
+                  </div>
+                )}
+                <div className="mt-2 text-xs text-green-700">{catchphrase}</div>
+              </div>
+            )}
 
             <div className="mt-4 flex items-start space-x-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-md p-3">
               <AlertCircle className="h-4 w-4 mt-0.5" />
