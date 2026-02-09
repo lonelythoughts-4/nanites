@@ -58,14 +58,16 @@ export async function apiFetch<T>(
     headers
   });
 
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    const text = await res.text();
+    const snippet = text.slice(0, 120).replace(/\s+/g, ' ').trim();
+    throw new Error(
+      `API returned HTML (likely wrong base URL or ngrok warning). Status ${res.status}. Snippet: ${snippet}`
+    );
+  }
+
   if (!res.ok) {
-    const contentType = res.headers.get('content-type') || '';
-    if (contentType.includes('text/html')) {
-      const text = await res.text();
-      throw new Error(
-        `API returned HTML (check VITE_API_BASE_URL or ngrok warning). Status ${res.status}.`
-      );
-    }
     const message = await parseErrorResponse(res);
     throw new Error(message || 'Request failed');
   }
