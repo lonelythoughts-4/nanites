@@ -27,6 +27,8 @@ import LaunchLoading from './src/components/LaunchLoading';
       }
     });
     const [showLaunchLoading, setShowLaunchLoading] = useState(false);
+    const [gateRolling, setGateRolling] = useState(false);
+    const [gateHidden, setGateHidden] = useState(false);
 
     useEffect(() => {
       initializeWebApp();
@@ -36,7 +38,7 @@ import LaunchLoading from './src/components/LaunchLoading';
     if (launchGateEnabled && !gateDismissed) {
       return (
         <Theme appearance="inherit" radius="large" scaling="100%">
-          {showLaunchLoading ? (
+          {showLaunchLoading && (
             <LaunchLoading
               onComplete={() => {
                 try {
@@ -46,12 +48,21 @@ import LaunchLoading from './src/components/LaunchLoading';
                 }
                 setGateDismissed(true);
                 setShowLaunchLoading(false);
+                setGateRolling(false);
+                setGateHidden(false);
               }}
             />
-          ) : (
+          )}
+          {!gateHidden && (
             <LaunchGate
+              rolling={gateRolling}
               onEnter={() => {
+                if (gateRolling) return;
                 setShowLaunchLoading(true);
+                setGateRolling(true);
+                setTimeout(() => {
+                  setGateHidden(true);
+                }, 650);
               }}
             />
           )}

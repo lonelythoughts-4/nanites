@@ -151,6 +151,26 @@ All colors MUST be HSL.
     mix-blend-mode: screen;
   }
 
+  .launch-layer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .launch-loading {
+    z-index: 40;
+  }
+
+  .launch-gate {
+    z-index: 50;
+  }
+
+  .launch-gate-roll {
+    animation: launchGateRollUp 0.65s ease-in forwards;
+    transform-origin: top center;
+  }
+
   .glitch {
     position: relative;
     display: inline-block;
@@ -208,5 +228,20 @@ All colors MUST be HSL.
     60% { transform: skew(0.4deg); }
     80% { transform: skew(-0.4deg); }
     100% { transform: skew(0deg); }
+  }
+
+  @keyframes launchGateRollUp {
+    0% {
+      clip-path: inset(0 0 0 0);
+      transform: translateY(0) scaleY(1);
+      opacity: 1;
+      filter: blur(0px);
+    }
+    100% {
+      clip-path: inset(0 0 100% 0);
+      transform: translateY(-8%) scaleY(0.05);
+      opacity: 0.1;
+      filter: blur(6px);
+    }
   }
 }

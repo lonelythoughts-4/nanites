@@ -8,7 +8,7 @@ const LaunchLoading = ({ onComplete }: LaunchLoadingProps) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const durationMs = 2200;
+    const durationMs = 3600;
     const stepMs = 40;
     const totalSteps = Math.ceil(durationMs / stepMs);
     const increment = 100 / totalSteps;
@@ -30,8 +30,8 @@ const LaunchLoading = ({ onComplete }: LaunchLoadingProps) => {
   }, [onComplete]);
 
   return (
-    <div className="launch-gate relative min-h-screen overflow-hidden bg-[#07080d] text-white">
-      <div className="absolute inset-0">
+    <div className="launch-layer launch-loading relative min-h-screen overflow-hidden bg-[#07080d] text-white">
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#1f2937_0%,#0b0f1c_45%,#05070b_100%)]" />
         <div className="absolute inset-0 opacity-60 bg-[linear-gradient(120deg,rgba(59,130,246,0.15),rgba(236,72,153,0.12),rgba(16,185,129,0.08))]" />
         <div className="absolute inset-0 launch-gate-scanlines" />
