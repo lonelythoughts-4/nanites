@@ -60,6 +60,7 @@ const WalletPage = () => {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('done');
   const [aliasInput, setAliasInput] = useState('');
   const [aliasSaving, setAliasSaving] = useState(false);
+  const [aliasOverride, setAliasOverride] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [pushAmount, setPushAmount] = useState('');
@@ -176,9 +177,11 @@ const WalletPage = () => {
       // ignore
     }
   }, []);
+  const effectiveAlias = aliasOverride || status?.wallet_alias || '';
+
   useEffect(() => {
     if (loading) return;
-    if (!status?.wallet_alias) {
+    if (!effectiveAlias) {
       setShowOnboarding(true);
       setOnboardingStep('intro');
       return;
@@ -195,7 +198,7 @@ const WalletPage = () => {
     }
     setShowOnboarding(false);
     setOnboardingStep('done');
-  }, [loading, status?.wallet_alias, termsAccepted, walletMode]);
+  }, [loading, effectiveAlias, termsAccepted, walletMode]);
 
   useEffect(() => {
     if (!importedWallet) return;
@@ -234,7 +237,7 @@ const WalletPage = () => {
       if (index >= prompt.length) {
         clearInterval(timer);
       }
-    }, 28);
+    }, 16);
     return () => clearInterval(timer);
   }, [showOnboarding, onboardingStep, displayName]);
 
@@ -373,7 +376,10 @@ const WalletPage = () => {
     const previousAlias = status?.wallet_alias || '';
     const optimisticAlias = clean.replace(/^@/, '').trim();
     setAliasSaving(true);
-    setStatus(prev => (prev ? { ...prev, wallet_alias: optimisticAlias } : prev));
+    setAliasOverride(optimisticAlias);
+    setStatus(prev =>
+      prev ? { ...prev, wallet_alias: optimisticAlias } : ({ wallet_alias: optimisticAlias } as WalletStatus)
+    );
     if (!termsAccepted) {
       setOnboardingStep('terms');
     } else if (!walletMode) {
@@ -385,9 +391,11 @@ const WalletPage = () => {
     try {
       const res: any = await withTimeout(api.setWalletAlias(clean), 8000);
       setStatus(prev => (prev ? { ...prev, wallet_alias: res.alias } : prev));
+      setAliasOverride('');
       await loadAll();
       toast.success('Rogue ID locked in');
     } catch (err: any) {
+      setAliasOverride('');
       setStatus(prev => (prev ? { ...prev, wallet_alias: previousAlias || null } : prev));
       setShowOnboarding(true);
       setOnboardingStep('alias');
@@ -510,7 +518,7 @@ const WalletPage = () => {
     }
   };
 
-  const aliasDisplay = status?.wallet_alias || '';
+  const aliasDisplay = effectiveAlias;
   return (
     <div className="min-h-screen app-shell text-slate-100">
       <Header />
