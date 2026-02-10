@@ -10,6 +10,7 @@ import Dashboard from './src/pages/Dashboard';
 import Deposit from './src/pages/Deposit';
 import Trade from './src/pages/Trade';
 import Withdraw from './src/pages/Withdraw';
+import Wallet from './src/pages/Wallet';
 import Referrals from './src/pages/Referrals';
 import Tutorials from './src/pages/Tutorials';
 import NotFound from './src/pages/NotFound';
@@ -80,6 +81,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/trade" element={<Trade />} />
+            <Route path="/wallet" element={<Wallet />} />
             <Route path="/deposit" element={<Deposit />} />
             <Route path="/withdraw" element={<Withdraw />} />
             <Route path="/referrals" element={<Referrals />} />

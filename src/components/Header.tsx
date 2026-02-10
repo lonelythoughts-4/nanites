@@ -14,6 +14,7 @@ const Header = ({ variant = 'dark' }: HeaderProps) => {
   const navigation = [
     { name: 'Trade', href: '/' },
     { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Wallet', href: '/wallet' },
     { name: 'Deposit', href: '/deposit' },
     { name: 'Withdraw', href: '/withdraw' },
     { name: 'Referrals', href: '/referrals' },

@@ -98,6 +98,29 @@ export const api = {
     apiFetch('/api/trading/stop', {
       method: 'POST'
     }),
+  getWalletStatus: () => apiFetch('/api/wallet/status'),
+  getWalletTransfers: (limit = 20) =>
+    apiFetch(`/api/wallet/transfers?limit=${encodeURIComponent(limit)}`),
+  walletTransfer: (to: string, amount: number) =>
+    apiFetch('/api/wallet/transfer', {
+      method: 'POST',
+      body: JSON.stringify({ to, amount })
+    }),
+  scanWalletDeposits: (chain?: string) =>
+    apiFetch('/api/wallet/deposit/scan', {
+      method: 'POST',
+      body: JSON.stringify(chain ? { chain } : {})
+    }),
+  getWalletSettings: () => apiFetch('/api/wallet/settings'),
+  updateWalletSettings: (settings: {
+    wallet_enabled?: boolean;
+    wallet_transfer_fee_percent?: number;
+    wallet_transfer_limit?: number;
+  }) =>
+    apiFetch('/api/wallet/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings)
+    }),
   continueCycle: () =>
     apiFetch('/api/trading/continue', {
       method: 'POST'
