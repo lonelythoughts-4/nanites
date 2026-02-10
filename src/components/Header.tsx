@@ -12,8 +12,8 @@ const Header = ({ variant = 'light' }: HeaderProps) => {
   const isDark = variant === 'dark';
 
   const navigation = [
-    { name: 'Dashboard', href: '/' },
-    { name: 'Trade', href: '/trade' },
+    { name: 'Trade', href: '/' },
+    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Deposit', href: '/deposit' },
     { name: 'Withdraw', href: '/withdraw' },
     { name: 'Referrals', href: '/referrals' },
@@ -41,8 +41,8 @@ const Header = ({ variant = 'light' }: HeaderProps) => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <Bot className={`h-8 w-8 ${isDark ? 'text-cyan-300' : 'text-blue-600'}`} />
-              <span className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-gray-900'}`}>
-                RougeRunner
+              <span className={`rogue-logo ${isDark ? 'rogue-logo-dark' : 'rogue-logo-light'}`}>
+                ROGUE
               </span>
             </Link>
           </div>

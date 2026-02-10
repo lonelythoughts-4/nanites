@@ -1,9 +1,8 @@
 import React from 'react';
-    import { useNavigate } from 'react-router-dom';
-    import Dashboard from './Dashboard';
+import Trade from './Trade';
 
-    const Home = () => {
-      return <Dashboard />;
-    };
+const Home = () => {
+  return <Trade />;
+};
 
-    export default Home;
+export default Home;

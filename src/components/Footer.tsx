@@ -22,8 +22,8 @@ const Footer = ({ variant = 'light' }: FooterProps) => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
               <Bot className={`h-8 w-8 ${iconTone}`} />
-              <span className={`text-xl font-bold ${heading}`}>
-                RougeRunner GENESYS
+              <span className={`rogue-logo ${isDark ? 'rogue-logo-dark' : 'rogue-logo-light'}`}>
+                ROGUE
               </span>
             </div>
             <p className={`${muted} text-sm max-w-md`}>
