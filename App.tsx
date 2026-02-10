@@ -27,6 +27,8 @@ const App: React.FC = () => {
     }
   });
   const [showLaunchLoading, setShowLaunchLoading] = useState(false);
+  const [gateRolling, setGateRolling] = useState(false);
+  const [gateHidden, setGateHidden] = useState(false);
 
   useEffect(() => {
     initializeWebApp();
@@ -36,7 +38,7 @@ const App: React.FC = () => {
   if (launchGateEnabled && !gateDismissed) {
     return (
       <Theme appearance="inherit" radius="large" scaling="100%">
-        {showLaunchLoading ? (
+        {showLaunchLoading && (
           <LaunchLoading
             onComplete={() => {
               try {
@@ -46,10 +48,23 @@ const App: React.FC = () => {
               }
               setGateDismissed(true);
               setShowLaunchLoading(false);
+              setGateRolling(false);
+              setGateHidden(false);
             }}
           />
-        ) : (
-          <LaunchGate onEnter={() => setShowLaunchLoading(true)} />
+        )}
+        {!gateHidden && (
+          <LaunchGate
+            rolling={gateRolling}
+            onEnter={() => {
+              if (gateRolling) return;
+              setShowLaunchLoading(true);
+              setGateRolling(true);
+              setTimeout(() => {
+                setGateHidden(true);
+              }, 650);
+            }}
+          />
         )}
       </Theme>
     );

@@ -4,10 +4,11 @@ import { api } from '../lib/api';
 
 type LaunchGateProps = {
   onEnter: () => void;
+  rolling?: boolean;
 };
 
-const LaunchGate = ({ onEnter }: LaunchGateProps) => {
-  const [rolling, setRolling] = useState(false);
+const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
+  const [localRolling, setLocalRolling] = useState(false);
   const [displayName, setDisplayName] = useState(() => {
     const initial = getTelegramDisplayName() || 'Runner';
     return initial.startsWith('@') ? initial.slice(1) : initial;
@@ -70,17 +71,16 @@ const LaunchGate = ({ onEnter }: LaunchGateProps) => {
     : `${displayName}'s`;
 
   const handleEnter = () => {
-    if (rolling) return;
-    setRolling(true);
-    setTimeout(() => {
-      onEnter();
-    }, 650);
+    const isRolling = rolling || localRolling;
+    if (isRolling) return;
+    setLocalRolling(true);
+    onEnter();
   };
 
   return (
     <div
       className={`launch-layer launch-gate relative min-h-screen overflow-hidden bg-[#07080d] text-white ${
-        rolling ? 'launch-gate-roll pointer-events-none' : ''
+        rolling || localRolling ? 'launch-gate-roll pointer-events-none' : ''
       }`}
     >
       <div className="absolute inset-0 pointer-events-none">
