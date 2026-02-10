@@ -851,6 +851,94 @@ All colors MUST be HSL.
     cursor: not-allowed;
   }
 
+  .matrix-button.ghost {
+    background: transparent;
+    color: #86efac;
+  }
+
+  .matrix-terms {
+    margin-top: 1rem;
+    text-align: left;
+    font-size: 0.8rem;
+    color: rgba(209, 250, 229, 0.82);
+    line-height: 1.6;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .matrix-choice {
+    margin-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .matrix-choice-grid {
+    margin-top: 1.5rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .matrix-choice-card {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: rgba(15, 23, 42, 0.75);
+    color: #d1fae5;
+    text-align: left;
+  }
+
+  .matrix-choice-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .matrix-choice-sub {
+    font-size: 0.75rem;
+    color: rgba(148, 163, 184, 0.8);
+    margin-top: 0.2rem;
+  }
+
+  .matrix-import-tabs {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .matrix-import-tabs button {
+    flex: 1;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: transparent;
+    color: #86efac;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .matrix-import-tabs button.active {
+    background: rgba(16, 185, 129, 0.8);
+    color: #00130a;
+  }
+
+  .matrix-textarea {
+    margin-top: 1rem;
+    width: 100%;
+    min-height: 120px;
+    border-radius: 16px;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: rgba(15, 23, 42, 0.75);
+    color: #d1fae5;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+
   @keyframes matrixRain {
     0% { transform: translateY(0); }
     100% { transform: translateY(20%); }

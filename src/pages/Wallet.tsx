@@ -1,5 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, Copy, RefreshCw, Send, ShieldCheck, Terminal, UserCircle } from 'lucide-react';
+﻿
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, Copy, RefreshCw, Send, ShieldCheck, Terminal, UserCircle, Wallet } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -15,10 +16,7 @@ type WalletStatus = {
   vault_balance?: number;
   wallet_alias?: string | null;
   wallet_alias_change_enabled?: boolean;
-  vault_balances?: Record<
-    string,
-    { balance: number; address: string; last_balance_usd?: number }
-  >;
+  vault_balances?: Record<string, { balance: number; address: string; last_balance_usd?: number }>;
   locked_amount?: number;
   earliest_unlock_cycle?: number | null;
   active_locks?: Array<{ amount: number; unlock_cycle?: number | null }>;
@@ -26,10 +24,18 @@ type WalletStatus = {
   is_admin?: boolean;
 };
 
+type OnboardingStep = 'intro' | 'alias' | 'terms' | 'choice' | 'import' | 'declined' | 'done';
+
+type ImportMode = 'seed' | 'private';
+
+type WalletMode = 'native' | 'import' | '';
+
 const MIN_PUSH = 20;
 const DEPOSIT_FEE_PERCENT = 0.1;
+const TERMS_KEY = 'rogue_wallet_terms_accepted';
+const MODE_KEY = 'rogue_wallet_mode';
 
-const Wallet = () => {
+const WalletPage = () => {
   const [status, setStatus] = useState<WalletStatus | null>(null);
   const [transfers, setTransfers] = useState<any[]>([]);
   const [vaultActivity, setVaultActivity] = useState<any[]>([]);
@@ -43,7 +49,7 @@ const Wallet = () => {
   const [adminLimit, setAdminLimit] = useState('1000');
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [scanResults, setScanResults] = useState<any[]>([]);
-  const [aliasStep, setAliasStep] = useState<'intro' | 'alias' | 'done'>('done');
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('done');
   const [aliasInput, setAliasInput] = useState('');
   const [aliasSaving, setAliasSaving] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -51,14 +57,38 @@ const Wallet = () => {
   const [pushAmount, setPushAmount] = useState('');
   const [pushChain, setPushChain] = useState('eth');
   const [pushing, setPushing] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [walletMode, setWalletMode] = useState<WalletMode>('');
+  const [importMode, setImportMode] = useState<ImportMode>('seed');
+  const [importValue, setImportValue] = useState('');
 
   const displayName = getTelegramDisplayName() || 'Runner';
 
   const chains = [
     { id: 'eth', name: 'Ethereum', symbol: 'ETH' },
-    { id: 'bsc', name: 'Binance Smart Chain', symbol: 'BSC' },
+    { id: 'bsc', name: 'Binance Smart Chain', symbol: 'BNB' },
     { id: 'sol', name: 'Solana', symbol: 'SOL' }
   ];
+
+  const tokenList = [
+    { symbol: 'ETH', chain: 'ETH', hint: 'Main asset' },
+    { symbol: 'BNB', chain: 'BSC', hint: 'Main asset' },
+    { symbol: 'SOL', chain: 'SOL', hint: 'Main asset' },
+    { symbol: 'USDT', chain: 'MULTI', hint: 'Stablecoin' },
+    { symbol: 'USDC', chain: 'MULTI', hint: 'Stablecoin' }
+  ];
+
+  const withTimeout = async <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeout = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Request timed out')), ms);
+    });
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
 
   const loadAll = async () => {
     const [statusRes, transferRes, activityRes] = await Promise.allSettled([
@@ -99,30 +129,52 @@ const Wallet = () => {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
-    if (status && !status.wallet_alias) {
-      setShowOnboarding(true);
-      setAliasStep('intro');
-    } else if (status?.wallet_alias) {
-      setShowOnboarding(false);
-      setAliasStep('done');
+    try {
+      setTermsAccepted(localStorage.getItem(TERMS_KEY) === 'true');
+      const savedMode = (localStorage.getItem(MODE_KEY) || '') as WalletMode;
+      setWalletMode(savedMode);
+    } catch {
+      // ignore
     }
-  }, [loading, status?.wallet_alias]);
+  }, []);
+  useEffect(() => {
+    if (loading) return;
+    if (!status?.wallet_alias) {
+      setShowOnboarding(true);
+      setOnboardingStep('intro');
+      return;
+    }
+    if (!termsAccepted) {
+      setShowOnboarding(true);
+      setOnboardingStep('terms');
+      return;
+    }
+    if (!walletMode) {
+      setShowOnboarding(true);
+      setOnboardingStep('choice');
+      return;
+    }
+    setShowOnboarding(false);
+    setOnboardingStep('done');
+  }, [loading, status?.wallet_alias, termsAccepted, walletMode]);
 
   useEffect(() => {
-    if (!showOnboarding || aliasStep !== 'alias') return;
-    const fullText = `What would you like to be called, ${displayName}?`;
+    if (!showOnboarding || (onboardingStep !== 'alias' && onboardingStep !== 'terms')) return;
+    const prompt =
+      onboardingStep === 'alias'
+        ? `What would you like to be called, ${displayName}?`
+        : 'Read carefully. Accept to unlock Rogue Wallet.';
     let index = 0;
     setTypedText('');
     const timer = setInterval(() => {
       index += 1;
-      setTypedText(fullText.slice(0, index));
-      if (index >= fullText.length) {
+      setTypedText(prompt.slice(0, index));
+      if (index >= prompt.length) {
         clearInterval(timer);
       }
     }, 28);
     return () => clearInterval(timer);
-  }, [showOnboarding, aliasStep, displayName]);
+  }, [showOnboarding, onboardingStep, displayName]);
 
   const feePercent = status?.transfer_fee_percent ?? 5;
   const transferLimit = status?.transfer_limit ?? 1000;
@@ -240,10 +292,17 @@ const Wallet = () => {
     }
     setAliasSaving(true);
     try {
-      const res: any = await api.setWalletAlias(clean);
+      const res: any = await withTimeout(api.setWalletAlias(clean), 8000);
       setStatus(prev => (prev ? { ...prev, wallet_alias: res.alias } : prev));
-      setShowOnboarding(false);
-      setAliasStep('done');
+      await loadAll();
+      if (!termsAccepted) {
+        setOnboardingStep('terms');
+      } else if (!walletMode) {
+        setOnboardingStep('choice');
+      } else {
+        setShowOnboarding(false);
+        setOnboardingStep('done');
+      }
       toast.success('Rogue ID locked in');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to set Rogue ID');
@@ -252,8 +311,52 @@ const Wallet = () => {
     }
   };
 
-  const aliasDisplay = status?.wallet_alias || '';
+  const handleAcceptTerms = () => {
+    try {
+      localStorage.setItem(TERMS_KEY, 'true');
+    } catch {
+      // ignore
+    }
+    setTermsAccepted(true);
+    setOnboardingStep('choice');
+  };
 
+  const handleDeclineTerms = () => {
+    setOnboardingStep('declined');
+  };
+
+  const handleSelectMode = (mode: WalletMode) => {
+    if (mode === 'import') {
+      setOnboardingStep('import');
+      return;
+    }
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch {
+      // ignore
+    }
+    setWalletMode(mode);
+    setShowOnboarding(false);
+    setOnboardingStep('done');
+  };
+
+  const handleImport = () => {
+    if (!importValue.trim()) {
+      toast.error('Enter your seed phrase or private key');
+      return;
+    }
+    try {
+      localStorage.setItem(MODE_KEY, 'import');
+    } catch {
+      // ignore
+    }
+    setWalletMode('import');
+    toast.success('Wallet imported (local only)');
+    setShowOnboarding(false);
+    setOnboardingStep('done');
+  };
+
+  const aliasDisplay = status?.wallet_alias || '';
   return (
     <div className="min-h-screen app-shell text-slate-100">
       <Header />
@@ -262,7 +365,7 @@ const Wallet = () => {
         <div className="matrix-screen">
           <div className="matrix-rain" />
           <div className="matrix-content">
-            {aliasStep === 'intro' && (
+            {onboardingStep === 'intro' && (
               <div className="matrix-card">
                 <div className="matrix-badge">ROGUE WALLET MATRIX</div>
                 <h2 className="matrix-title">Welcome, {displayName}</h2>
@@ -270,15 +373,12 @@ const Wallet = () => {
                   You are entering a private ledger. Set your Rogue ID to unlock internal
                   transfers.
                 </p>
-                <button
-                  className="matrix-button"
-                  onClick={() => setAliasStep('alias')}
-                >
+                <button className="matrix-button" onClick={() => setOnboardingStep('alias')}>
                   Enter Rogue ID
                 </button>
               </div>
             )}
-            {aliasStep === 'alias' && (
+            {onboardingStep === 'alias' && (
               <div className="matrix-card">
                 <div className="matrix-badge">IDENTITY SEQUENCE</div>
                 <p className="matrix-typing">
@@ -294,12 +394,101 @@ const Wallet = () => {
                   />
                 </div>
                 <p className="matrix-hint">Letters, numbers, underscore. 3-20 chars.</p>
-                <button
-                  className="matrix-button"
-                  onClick={handleAliasSave}
-                  disabled={aliasSaving}
-                >
+                <button className="matrix-button" onClick={handleAliasSave} disabled={aliasSaving}>
                   {aliasSaving ? 'Saving...' : 'Lock Rogue ID'}
+                </button>
+              </div>
+            )}
+            {onboardingStep === 'terms' && (
+              <div className="matrix-card">
+                <div className="matrix-badge">TERMS AND CONDITIONS</div>
+                <p className="matrix-typing">
+                  {typedText}
+                  <span className="matrix-caret" />
+                </p>
+                <div className="matrix-terms">
+                  <p>
+                    By unlocking Rogue Wallet, you accept responsibility for your keys and
+                    transactions. Supported assets include ETH, BNB, SOL, USDT, and USDC on
+                    supported networks. Always verify addresses before sending funds.
+                  </p>
+                  <p>
+                    Rogue Wallet is non-custodial for imported wallets. Imported keys are stored
+                    locally only and never sent to our servers.
+                  </p>
+                </div>
+                <div className="matrix-choice">
+                  <button className="matrix-button" onClick={handleAcceptTerms}>
+                    Accept
+                  </button>
+                  <button className="matrix-button ghost" onClick={handleDeclineTerms}>
+                    Decline
+                  </button>
+                </div>
+              </div>
+            )}
+            {onboardingStep === 'declined' && (
+              <div className="matrix-card">
+                <div className="matrix-badge">ACCESS BLOCKED</div>
+                <h2 className="matrix-title">Terms declined</h2>
+                <p className="matrix-sub">
+                  You must accept the terms to use Rogue Wallet features.
+                </p>
+                <button className="matrix-button" onClick={() => setOnboardingStep('terms')}>
+                  Review Terms
+                </button>
+              </div>
+            )}
+            {onboardingStep === 'choice' && (
+              <div className="matrix-card">
+                <div className="matrix-badge">WALLET MODE</div>
+                <h2 className="matrix-title">Choose your setup</h2>
+                <div className="matrix-choice-grid">
+                  <button className="matrix-choice-card" onClick={() => handleSelectMode('native')}>
+                    <Wallet className="h-6 w-6" />
+                    <div>
+                      <div className="matrix-choice-title">Use Rogue Wallet</div>
+                      <div className="matrix-choice-sub">Permanent addresses, vault balance, internal transfers.</div>
+                    </div>
+                  </button>
+                  <button className="matrix-choice-card" onClick={() => handleSelectMode('import')}>
+                    <ShieldCheck className="h-6 w-6" />
+                    <div>
+                      <div className="matrix-choice-title">Import Wallet</div>
+                      <div className="matrix-choice-sub">Bring your own seed or private key.</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+            {onboardingStep === 'import' && (
+              <div className="matrix-card">
+                <div className="matrix-badge">IMPORT WALLET</div>
+                <p className="matrix-sub">
+                  Keys never leave your device. Choose seed phrase or private key.
+                </p>
+                <div className="matrix-import-tabs">
+                  <button
+                    className={importMode === 'seed' ? 'active' : ''}
+                    onClick={() => setImportMode('seed')}
+                  >
+                    Seed Phrase
+                  </button>
+                  <button
+                    className={importMode === 'private' ? 'active' : ''}
+                    onClick={() => setImportMode('private')}
+                  >
+                    Private Key
+                  </button>
+                </div>
+                <textarea
+                  className="matrix-textarea"
+                  value={importValue}
+                  onChange={(e) => setImportValue(e.target.value)}
+                  placeholder={importMode === 'seed' ? 'Enter 12 or 24 word seed phrase' : 'Enter private key'}
+                />
+                <button className="matrix-button" onClick={handleImport}>
+                  Import Wallet
                 </button>
               </div>
             )}
@@ -319,11 +508,16 @@ const Wallet = () => {
                 Rogue ID: {aliasDisplay}
               </div>
             )}
+            {walletMode && (
+              <div className="mt-2 text-xs uppercase tracking-[0.3em] text-slate-400">
+                Wallet Mode: {walletMode === 'import' ? 'Imported' : 'Rogue Wallet'}
+              </div>
+            )}
             {aliasDisplay && allowAliasChange && (
               <button
                 onClick={() => {
                   setAliasInput(aliasDisplay);
-                  setAliasStep('alias');
+                  setOnboardingStep('alias');
                   setShowOnboarding(true);
                 }}
                 className="mt-2 text-xs uppercase tracking-[0.3em] text-amber-200 hover:text-amber-100"
@@ -340,7 +534,6 @@ const Wallet = () => {
             Refresh
           </button>
         </div>
-
         {!enabled && (
           <div className="mb-6 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4 text-amber-200 text-sm">
             Wallet feature is currently disabled by admin.
@@ -350,32 +543,50 @@ const Wallet = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl p-5 shadow">
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Bot Balance</div>
-            <div className="text-2xl font-bold text-slate-100 mt-2">
-              ${botBalance.toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold text-slate-100 mt-2">${botBalance.toLocaleString()}</div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow">
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Vault Balance</div>
-            <div className="text-2xl font-bold text-emerald-200 mt-2">
-              ${vaultBalance.toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold text-emerald-200 mt-2">${vaultBalance.toLocaleString()}</div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow">
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Transfer Fee</div>
-            <div className="text-2xl font-bold text-amber-200 mt-2">
-              {feePercent}%
-            </div>
+            <div className="text-2xl font-bold text-amber-200 mt-2">{feePercent}%</div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow">
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Locked Funds</div>
-            <div className="text-2xl font-bold text-rose-200 mt-2">
-              ${Number(lockedAmount).toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold text-rose-200 mt-2">${Number(lockedAmount).toLocaleString()}</div>
             {lockedAmount > 0 && (
-              <div className="text-xs text-slate-400 mt-2">
-                Unlocks after Cycle {unlockCycle || '-'}
-              </div>
+              <div className="text-xs text-slate-400 mt-2">Unlocks after Cycle {unlockCycle || '-'}</div>
             )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-100">Wallet Assets</h2>
+            <ShieldCheck className="h-4 w-4 text-emerald-300" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {tokenList.map((token) => (
+              <div key={token.symbol} className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-slate-100">{token.symbol}</div>
+                  <span className="text-xs text-slate-400">{token.chain}</span>
+                </div>
+                <div className="mt-2 text-lg text-emerald-200">{token.symbol === 'ETH'
+                  ? `$${(status?.vault_balances?.eth?.balance ?? 0).toFixed(2)}`
+                  : token.symbol === 'BNB'
+                    ? `$${(status?.vault_balances?.bsc?.balance ?? 0).toFixed(2)}`
+                    : token.symbol === 'SOL'
+                      ? `$${(status?.vault_balances?.sol?.balance ?? 0).toFixed(2)}`
+                      : '$0.00'}</div>
+                <div className="text-xs text-slate-500">{token.hint}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-xs text-slate-500">
+            USDT and USDC balances are detected on scan and included in your vault totals.
           </div>
         </div>
 
@@ -398,18 +609,13 @@ const Wallet = () => {
                   <div key={chain} className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
                       <span>{chain.toUpperCase()}</span>
-                      <button
-                        onClick={() => handleCopy(address)}
-                        className="inline-flex items-center gap-1 text-amber-200 hover:text-amber-100"
-                      >
+                      <button onClick={() => handleCopy(address)} className="inline-flex items-center gap-1 text-amber-200 hover:text-amber-100">
                         <Copy className="h-3 w-3" />
                         Copy
                       </button>
                     </div>
                     <div className="mt-2 text-xs break-all text-slate-200">{address}</div>
-                    <div className="mt-3 text-sm text-emerald-200">
-                      Vault: ${Number(chainBalance || 0).toLocaleString()}
-                    </div>
+                    <div className="mt-3 text-sm text-emerald-200">Vault: ${Number(chainBalance || 0).toLocaleString()}</div>
                   </div>
                 );
               })}
@@ -427,8 +633,7 @@ const Wallet = () => {
                 <div className="text-xs text-slate-400 space-y-1">
                   {scanResults.map((r, idx) => (
                     <div key={`${r.chain}-${idx}`}>
-                      {r.chain.toUpperCase()}: {r.status}{' '}
-                      {r.credited ? `+$${r.credited}` : ''}
+                      {r.chain.toUpperCase()}: {r.status} {r.credited ? `+$${r.credited}` : ''}
                     </div>
                   ))}
                 </div>
@@ -473,9 +678,7 @@ const Wallet = () => {
                   {pushing ? 'Moving...' : 'Push'}
                 </button>
               </div>
-              <div className="mt-2 text-xs text-slate-400">
-                Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}
-              </div>
+              <div className="mt-2 text-xs text-slate-400">Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}</div>
             </div>
 
             <div className="mt-6 rounded-2xl border border-slate-800/60 bg-black/40 p-4">
@@ -484,23 +687,14 @@ const Wallet = () => {
                 <ShieldCheck className="h-4 w-4 text-emerald-300" />
               </div>
               <div className="mt-3 space-y-2 text-xs text-slate-300">
-                {vaultActivity.length === 0 && (
-                  <div className="text-slate-500">No vault activity yet.</div>
-                )}
+                {vaultActivity.length === 0 && <div className="text-slate-500">No vault activity yet.</div>}
                 {vaultActivity.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-800/60 pb-2"
-                  >
+                  <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-800/60 pb-2">
                     <div>
                       <div className="text-slate-100">
-                        {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${
-                          Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)
-                        }
+                        {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)}
                       </div>
-                      <div className="text-xs text-slate-500">
-                        {tx.chain ? tx.chain.toUpperCase() : '-'}
-                      </div>
+                      <div className="text-xs text-slate-500">{tx.chain ? tx.chain.toUpperCase() : '-'}</div>
                     </div>
                     <div className="text-xs text-slate-500 mt-1 sm:mt-0">
                       {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
@@ -510,7 +704,6 @@ const Wallet = () => {
               </div>
             </div>
           </div>
-
           <div className="bg-white rounded-2xl p-6 shadow">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-100">Send to Rogue ID</h2>
@@ -540,10 +733,9 @@ const Wallet = () => {
                   placeholder="0.00"
                   disabled={!enabled || sending}
                 />
-                <div className="mt-2 text-xs text-slate-400">
-                  Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}
-                </div>
-              </div>
+              <div className="mt-2 text-xs text-slate-400">Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}</div>
+              <div className="mt-1 text-xs text-slate-500">Max per transfer: ${transferLimit.toLocaleString()}</div>
+            </div>
               <button
                 onClick={handleSend}
                 disabled={!enabled || sending}
@@ -563,23 +755,15 @@ const Wallet = () => {
             <h2 className="text-lg font-semibold text-slate-100">Transfer History</h2>
           </div>
           <div className="space-y-3 text-sm text-slate-300">
-            {transfers.length === 0 && (
-              <div className="text-slate-500 text-sm">No transfers yet.</div>
-            )}
+            {transfers.length === 0 && <div className="text-slate-500 text-sm">No transfers yet.</div>}
             {transfers.map((tx) => {
               const isOut = tx.type === 'wallet_transfer_out';
-              const counterpart = isOut
-                ? tx.meta?.to_alias || tx.meta?.to || '-'
-                : tx.meta?.from_alias || tx.meta?.from || '-';
+              const counterpart = isOut ? tx.meta?.to_alias || tx.meta?.to || '-' : tx.meta?.from_alias || tx.meta?.from || '-';
               return (
                 <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-800/60 pb-2">
                   <div>
-                    <div className="text-slate-100">
-                      {isOut ? 'Sent' : 'Received'} ${Number(tx.amount || 0).toFixed(2)}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {isOut ? `To: ${counterpart}` : `From: ${counterpart}`}
-                    </div>
+                    <div className="text-slate-100">{isOut ? 'Sent' : 'Received'} ${Number(tx.amount || 0).toFixed(2)}</div>
+                    <div className="text-xs text-slate-500">{isOut ? `To: ${counterpart}` : `From: ${counterpart}`}</div>
                   </div>
                   <div className="text-xs text-slate-500 mt-1 sm:mt-0">
                     {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
@@ -598,41 +782,23 @@ const Wallet = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <label className="flex items-center gap-2 text-sm text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={adminEnabled}
-                  onChange={(e) => setAdminEnabled(e.target.checked)}
-                />
+                <input type="checkbox" checked={adminEnabled} onChange={(e) => setAdminEnabled(e.target.checked)} />
                 Wallet enabled
               </label>
               <div>
-                <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">
-                  Fee %
-                </label>
-                <input
-                  value={adminFee}
-                  onChange={(e) => setAdminFee(e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
-                />
+                <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">Fee %</label>
+                <input value={adminFee} onChange={(e) => setAdminFee(e.target.value)} className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100" />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">
-                  Transfer Limit
-                </label>
-                <input
-                  value={adminLimit}
-                  onChange={(e) => setAdminLimit(e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
-                />
+                <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">Transfer Limit</label>
+                <input value={adminLimit} onChange={(e) => setAdminLimit(e.target.value)} className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100" />
               </div>
             </div>
             <label className="mt-4 flex items-center gap-2 text-sm text-slate-300">
               <input
                 type="checkbox"
                 checked={allowAliasChange}
-                onChange={(e) =>
-                  setStatus(prev => (prev ? { ...prev, wallet_alias_change_enabled: e.target.checked } : prev))
-                }
+                onChange={(e) => setStatus(prev => (prev ? { ...prev, wallet_alias_change_enabled: e.target.checked } : prev))}
               />
               Allow Rogue ID changes
             </label>
@@ -652,4 +818,4 @@ const Wallet = () => {
   );
 };
 
-export default Wallet;
+export default WalletPage;
