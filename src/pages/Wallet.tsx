@@ -370,21 +370,27 @@ const WalletPage = () => {
       toast.error('Rogue ID cannot match your Telegram username');
       return;
     }
+    const previousAlias = status?.wallet_alias || '';
+    const optimisticAlias = clean.replace(/^@/, '').trim();
     setAliasSaving(true);
+    setStatus(prev => (prev ? { ...prev, wallet_alias: optimisticAlias } : prev));
+    if (!termsAccepted) {
+      setOnboardingStep('terms');
+    } else if (!walletMode) {
+      setOnboardingStep('choice');
+    } else {
+      setShowOnboarding(false);
+      setOnboardingStep('done');
+    }
     try {
       const res: any = await withTimeout(api.setWalletAlias(clean), 8000);
       setStatus(prev => (prev ? { ...prev, wallet_alias: res.alias } : prev));
       await loadAll();
-      if (!termsAccepted) {
-        setOnboardingStep('terms');
-      } else if (!walletMode) {
-        setOnboardingStep('choice');
-      } else {
-        setShowOnboarding(false);
-        setOnboardingStep('done');
-      }
       toast.success('Rogue ID locked in');
     } catch (err: any) {
+      setStatus(prev => (prev ? { ...prev, wallet_alias: previousAlias || null } : prev));
+      setShowOnboarding(true);
+      setOnboardingStep('alias');
       toast.error(err?.message || 'Failed to set Rogue ID');
     } finally {
       setAliasSaving(false);
