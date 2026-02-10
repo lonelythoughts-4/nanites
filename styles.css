@@ -615,6 +615,10 @@ All colors MUST be HSL.
     pointer-events: none;
   }
 
+  .rogue-logo-static::after {
+    display: none;
+  }
+
   @keyframes rogueShimmer {
     0%, 70% {
       transform: translateX(-120%);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 type FooterProps = {
   variant?: 'light' | 'dark';
@@ -13,7 +13,6 @@ const Footer = ({ variant = 'light' }: FooterProps) => {
   const heading = isDark ? 'text-slate-100' : 'text-gray-900';
   const muted = isDark ? 'text-slate-400' : 'text-gray-600';
   const hover = isDark ? 'hover:text-white' : 'hover:text-gray-900';
-  const iconTone = isDark ? 'text-cyan-300' : 'text-blue-600';
 
   return (
     <footer className={wrapperClass}>
@@ -21,8 +20,7 @@ const Footer = ({ variant = 'light' }: FooterProps) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <Bot className={`h-8 w-8 ${iconTone}`} />
-              <span className={`rogue-logo ${isDark ? 'rogue-logo-dark' : 'rogue-logo-light'}`}>
+              <span className={`rogue-logo rogue-logo-static ${isDark ? 'rogue-logo-dark' : 'rogue-logo-light'}`}>
                 ROGUE
               </span>
             </div>
@@ -85,15 +83,7 @@ const Footer = ({ variant = 'light' }: FooterProps) => {
             <p className={`${isDark ? 'text-slate-500' : 'text-gray-500'} text-sm`}>
               © 2026 RougeRunner GENESYS. All rights reserved.
             </p>
-            <div className="mt-4 md:mt-0 flex space-x-6">
-              <a
-                href="#"
-                className={isDark ? 'text-slate-500 hover:text-slate-300' : 'text-gray-400 hover:text-gray-500'}
-              >
-                <span className="sr-only">Telegram</span>
-                <Bot className="h-5 w-5" />
-              </a>
-            </div>
+            <div className="mt-4 md:mt-0 flex space-x-6" />
           </div>
         </div>
       </div>

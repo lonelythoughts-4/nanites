@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Bot, User } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 type HeaderProps = {
@@ -39,8 +39,7 @@ const Header = ({ variant = 'light' }: HeaderProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <Bot className={`h-8 w-8 ${isDark ? 'text-cyan-300' : 'text-blue-600'}`} />
+            <Link to="/" className="flex items-center">
               <span className={`rogue-logo ${isDark ? 'rogue-logo-dark' : 'rogue-logo-light'}`}>
                 ROGUE
               </span>
