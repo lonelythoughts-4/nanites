@@ -41,7 +41,7 @@ const LaunchLoading = ({ onComplete }: LaunchLoadingProps) => {
         <div className="w-full max-w-xl text-center">
           <div
             className="text-[10px] sm:text-xs uppercase tracking-[0.5em] text-slate-400"
-            style={{ fontFamily: '"Space Mono", monospace' }}
+            style={{ fontFamily: '"Fredoka", "Comic Neue", cursive' }}
           >
             Rogue Engine Boot Sequence
           </div>
@@ -50,7 +50,7 @@ const LaunchLoading = ({ onComplete }: LaunchLoadingProps) => {
             <div
               className="glitch text-2xl sm:text-3xl font-semibold"
               data-text="Initializing"
-              style={{ fontFamily: '"Space Mono", monospace' }}
+              style={{ fontFamily: '"Bangers", "Fredoka", cursive' }}
             >
               Initializing
             </div>

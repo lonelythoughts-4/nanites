@@ -90,7 +90,7 @@ const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
         <div className="w-full max-w-3xl text-center">
           <div
             className="text-[10px] sm:text-xs uppercase tracking-[0.5em] text-slate-400"
-            style={{ fontFamily: '"Space Mono", monospace' }}
+            style={{ fontFamily: '"Fredoka", "Comic Neue", cursive' }}
           >
             Rogue Engine Access Protocol
           </div>
@@ -98,7 +98,7 @@ const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
           <h1
             className="glitch mt-6 text-4xl sm:text-6xl md:text-7xl font-semibold text-white"
             data-text={possessive}
-            style={{ fontFamily: '"Space Mono", monospace' }}
+            style={{ fontFamily: '"Bangers", "Fredoka", cursive' }}
           >
             {possessive}
           </h1>
@@ -106,7 +106,7 @@ const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
           <h2
             className="glitch mt-3 text-3xl sm:text-5xl md:text-6xl font-bold tracking-[0.2em] text-white"
             data-text="ROGUERUNNER"
-            style={{ fontFamily: '"Space Mono", monospace' }}
+            style={{ fontFamily: '"Bangers", "Fredoka", cursive' }}
           >
             ROGUERUNNER
           </h2>
@@ -119,7 +119,7 @@ const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
             <button
               onClick={handleEnter}
               className="group relative inline-flex items-center justify-center rounded-full border border-cyan-400/60 bg-black/40 px-6 py-3 text-sm sm:text-base font-semibold uppercase tracking-widest text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,0.25)] transition hover:border-cyan-300 hover:text-white"
-              style={{ fontFamily: '"Space Mono", monospace' }}
+              style={{ fontFamily: '"Fredoka", "Comic Neue", cursive' }}
             >
               <span
                 className="glitch"
