@@ -46,6 +46,20 @@ const Trade = () => {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    const interval = setInterval(() => {
+      if (!active) return;
+      refreshAll().catch(() => {
+        // ignore periodic refresh failures
+      });
+    }, 15000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
     const isTrading = !!tradeInfo?.is_trading;
     if (actionState === 'starting') {
       setStatus('arming');
@@ -149,7 +163,7 @@ const Trade = () => {
 
   return (
     <div className="min-h-screen trade-shell text-slate-100">
-      <Header />
+      <Header variant="dark" />
 
       <main className="trade-frame">
         <section className="trade-hero">
@@ -182,16 +196,32 @@ const Trade = () => {
           </div>
 
           <div className="trade-control">
-            <div className={`trade-ring ${status}`}>
+            <div
+              className={`trade-ring ${status}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={status === 'active'}
+              aria-disabled={actionState !== 'idle'}
+              onClick={handleToggle}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleToggle();
+                }
+              }}
+            >
               <span className="trade-orbit trade-orbit-1" />
               <span className="trade-orbit trade-orbit-2" />
               <span className="trade-orbit trade-orbit-3" />
               <button
                 type="button"
                 className="trade-orb"
-                onClick={handleToggle}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleToggle();
+                }}
                 aria-pressed={status === 'active'}
-                disabled={status === 'arming' || status === 'stopping' || (!canStart && status !== 'active')}
+                disabled={status === 'arming' || status === 'stopping'}
               >
                 <span className="trade-orb-label">{label}</span>
                 <span className="trade-orb-sub">{subLabel}</span>
@@ -279,7 +309,7 @@ const Trade = () => {
         </section>
       </main>
 
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 };
