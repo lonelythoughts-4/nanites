@@ -106,6 +106,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ to, amount })
     }),
+  setWalletAlias: (alias: string) =>
+    apiFetch('/api/wallet/alias', {
+      method: 'POST',
+      body: JSON.stringify({ alias })
+    }),
+  walletPush: (chain: string, amount: number) =>
+    apiFetch('/api/wallet/push', {
+      method: 'POST',
+      body: JSON.stringify({ chain, amount })
+    }),
   scanWalletDeposits: (chain?: string) =>
     apiFetch('/api/wallet/deposit/scan', {
       method: 'POST',
