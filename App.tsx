@@ -74,7 +74,7 @@ const App: React.FC = () => {
   return (
     <Theme appearance="inherit" radius="large" scaling="100%">
       <Router>
-        <div className="min-h-screen font-sans bg-gray-50">
+        <div className="min-h-screen font-sans app-shell">
           <WebAppNotice />
           <Routes>
             <Route path="/" element={<Home />} />

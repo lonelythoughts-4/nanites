@@ -6,7 +6,7 @@ type HeaderProps = {
   variant?: 'light' | 'dark';
 };
 
-const Header = ({ variant = 'light' }: HeaderProps) => {
+const Header = ({ variant = 'dark' }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const isDark = variant === 'dark';
@@ -28,10 +28,10 @@ const Header = ({ variant = 'light' }: HeaderProps) => {
     ? 'bg-[#05070d]/90 border-b border-slate-800/70 text-slate-100'
     : 'bg-white border-b border-gray-200';
   const navActive = isDark
-    ? 'bg-cyan-400/15 text-cyan-200'
+    ? 'bg-amber-400/15 text-amber-200'
     : 'bg-blue-100 text-blue-700';
   const navIdle = isDark
-    ? 'text-slate-300 hover:text-white hover:bg-white/5'
+    ? 'text-slate-300 hover:text-amber-100 hover:bg-amber-400/10'
     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50';
 
   return (

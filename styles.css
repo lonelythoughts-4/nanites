@@ -577,6 +577,68 @@ All colors MUST be HSL.
     padding-bottom: 0;
   }
 
+  .app-shell {
+    background:
+      radial-gradient(circle at 12% 10%, rgba(251, 191, 36, 0.12), transparent 45%),
+      radial-gradient(circle at 80% 0%, rgba(56, 189, 248, 0.18), transparent 55%),
+      radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.15), transparent 60%),
+      #05070d;
+    color: #e2e8f0;
+  }
+
+  .app-shell .bg-gray-50 {
+    background: transparent;
+  }
+
+  .app-shell .bg-white {
+    background-color: rgba(15, 23, 42, 0.88);
+    border-color: rgba(148, 163, 184, 0.2);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+  }
+
+  .app-shell .border-gray-200 {
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .app-shell .text-gray-900 {
+    color: #f8fafc;
+  }
+
+  .app-shell .text-gray-700 {
+    color: #cbd5f5;
+  }
+
+  .app-shell .text-gray-600,
+  .app-shell .text-gray-500 {
+    color: #94a3b8;
+  }
+
+  .app-shell .bg-blue-600 {
+    background-color: #d97706;
+  }
+
+  .app-shell .hover\:bg-blue-700:hover {
+    background-color: #b45309;
+  }
+
+  .app-shell .bg-blue-100 {
+    background-color: rgba(251, 191, 36, 0.18);
+  }
+
+  .app-shell .text-blue-700,
+  .app-shell .text-blue-600 {
+    color: #facc15;
+  }
+
+  .app-shell .hover\:text-blue-700:hover,
+  .app-shell .hover\:text-blue-600:hover {
+    color: #fde047;
+  }
+
+  .app-shell .bg-gray-100 {
+    background-color: rgba(15, 23, 42, 0.7);
+  }
+
   .rogue-logo {
     font-family: 'Bangers', 'Fredoka', cursive;
     font-size: 1.6rem;

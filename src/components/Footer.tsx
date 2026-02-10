@@ -5,7 +5,7 @@ type FooterProps = {
   variant?: 'light' | 'dark';
 };
 
-const Footer = ({ variant = 'light' }: FooterProps) => {
+const Footer = ({ variant = 'dark' }: FooterProps) => {
   const isDark = variant === 'dark';
   const wrapperClass = isDark
     ? 'bg-transparent border-t border-slate-800/70'
