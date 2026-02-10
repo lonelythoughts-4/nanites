@@ -23,22 +23,53 @@ const ERC20_ABI = [
 
 const DEFAULT_EVM = {
   eth: {
-    rpc: 'https://cloudflare-eth.com',
     usdt: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606e48'
   },
   bsc: {
-    rpc: 'https://bsc-dataseed.binance.org',
     usdt: '0x55d398326f99059ff775485246999027b3197955',
     usdc: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d'
   }
 };
 
 const DEFAULT_SOL = {
-  rpc: 'https://api.mainnet-beta.solana.com',
   usdt: 'Es9vMFrzaCERxjEQ2e8gQx3G5n8N7xP4xLQow9i5ewwB',
   usdc: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 };
+
+const ETH_RPCS = [
+  'https://eth.publicnode.com',
+  'https://eth-mainnet.public.blastapi.io',
+  'https://1rpc.io/eth'
+];
+
+const BSC_RPCS = [
+  'https://bsc.publicnode.com',
+  'https://bsc-mainnet.public.blastapi.io',
+  'https://1rpc.io/bsc'
+];
+
+const SOL_RPCS = [
+  'https://api.mainnet-beta.solana.com',
+  'https://lb.drpc.live/solana/AsI-wCxldUISpGcRLIzZ1ZTm73-y0MsR8K7dOmy9-kY5'
+];
+
+const RPC_TIMEOUT_MS = 7000;
+const PROVIDER_TTL_MS = 30000;
+
+const providerCache = new Map<string, { ts: number; provider: any }>();
+
+async function withTimeout<T>(promise: Promise<T>, ms: number) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('RPC timeout')), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 async function getEthers() {
   return await import('ethers');
@@ -114,8 +145,28 @@ export async function deriveImportedWallet(mode: 'seed' | 'private', value: stri
 
 async function getEvmProvider(chain: 'eth' | 'bsc') {
   const { JsonRpcProvider } = await getEthers();
-  const rpc = chain === 'eth' ? DEFAULT_EVM.eth.rpc : DEFAULT_EVM.bsc.rpc;
-  return new JsonRpcProvider(rpc);
+  const cacheKey = `evm:${chain}`;
+  const cached = providerCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < PROVIDER_TTL_MS) {
+    return cached.provider;
+  }
+
+  const rpcs = chain === 'eth' ? ETH_RPCS : BSC_RPCS;
+  const attempts = rpcs.map(async (rpc) => {
+    const provider = new JsonRpcProvider(rpc);
+    await withTimeout(provider.getBlockNumber(), RPC_TIMEOUT_MS);
+    return provider;
+  });
+
+  try {
+    const provider = await Promise.any(attempts);
+    providerCache.set(cacheKey, { ts: Date.now(), provider });
+    return provider;
+  } catch {
+    const fallback = new JsonRpcProvider(rpcs[0]);
+    providerCache.set(cacheKey, { ts: Date.now(), provider: fallback });
+    return fallback;
+  }
 }
 
 async function getEvmTokenContracts(chain: 'eth' | 'bsc', walletAddress: string) {
@@ -133,8 +184,27 @@ async function getEvmTokenContracts(chain: 'eth' | 'bsc', walletAddress: string)
 
 async function getSolConnection() {
   const { Connection } = await getSolana();
-  const rpc = DEFAULT_SOL.rpc;
-  return new Connection(rpc, 'confirmed');
+  const cacheKey = 'sol';
+  const cached = providerCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < PROVIDER_TTL_MS) {
+    return cached.provider;
+  }
+
+  const attempts = SOL_RPCS.map(async (rpc) => {
+    const conn = new Connection(rpc, 'confirmed');
+    await withTimeout(conn.getLatestBlockhash(), RPC_TIMEOUT_MS);
+    return conn;
+  });
+
+  try {
+    const connection = await Promise.any(attempts);
+    providerCache.set(cacheKey, { ts: Date.now(), provider: connection });
+    return connection;
+  } catch {
+    const fallback = new Connection(SOL_RPCS[0], 'confirmed');
+    providerCache.set(cacheKey, { ts: Date.now(), provider: fallback });
+    return fallback;
+  }
 }
 
 export async function getImportedBalances(wallet: ImportedWallet): Promise<ImportedBalances> {
