@@ -4,10 +4,10 @@ import { api } from '../lib/api';
 
 type LaunchGateProps = {
   onEnter: () => void;
-  rolling?: boolean;
 };
 
-const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
+const LaunchGate = ({ onEnter }: LaunchGateProps) => {
+  const [rolling, setRolling] = useState(false);
   const [displayName, setDisplayName] = useState(() => {
     const initial = getTelegramDisplayName() || 'Runner';
     return initial.startsWith('@') ? initial.slice(1) : initial;
@@ -71,7 +71,10 @@ const LaunchGate = ({ onEnter, rolling = false }: LaunchGateProps) => {
 
   const handleEnter = () => {
     if (rolling) return;
-    onEnter();
+    setRolling(true);
+    setTimeout(() => {
+      onEnter();
+    }, 650);
   };
 
   return (
