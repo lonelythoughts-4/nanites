@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 
       const navigation = [
         { name: 'Dashboard', href: '/' },
+        { name: 'Trade', href: '/trade' },
         { name: 'Deposit', href: '/deposit' },
         { name: 'Withdraw', href: '/withdraw' },
         { name: 'Referrals', href: '/referrals' },

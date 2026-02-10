@@ -89,6 +89,15 @@ export const api = {
   getReferrals: () => apiFetch('/api/referrals'),
   getTier: () => apiFetch('/api/user/tier'),
   getCycle: () => apiFetch('/api/user/cycle'),
+  getTradingStatus: () => apiFetch('/api/trading/status'),
+  startTrading: () =>
+    apiFetch('/api/trading/start', {
+      method: 'POST'
+    }),
+  stopTrading: () =>
+    apiFetch('/api/trading/stop', {
+      method: 'POST'
+    }),
   continueCycle: () =>
     apiFetch('/api/trading/continue', {
       method: 'POST'

@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './src/pages/Home';
 import Dashboard from './src/pages/Dashboard';
 import Deposit from './src/pages/Deposit';
+import Trade from './src/pages/Trade';
 import Withdraw from './src/pages/Withdraw';
 import Referrals from './src/pages/Referrals';
 import Tutorials from './src/pages/Tutorials';
@@ -78,6 +79,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/trade" element={<Trade />} />
             <Route path="/deposit" element={<Deposit />} />
             <Route path="/withdraw" element={<Withdraw />} />
             <Route path="/referrals" element={<Referrals />} />
