@@ -1,0 +1,319 @@
+export type ImportedWallet = {
+  evm?: {
+    address: string;
+    wallet: any;
+  };
+  sol?: {
+    address: string;
+    keypair: any;
+  };
+};
+
+export type ImportedBalances = {
+  eth: { native: number; usdt: number; usdc: number };
+  bsc: { native: number; usdt: number; usdc: number };
+  sol: { native: number; usdt: number; usdc: number };
+};
+
+const ERC20_ABI = [
+  'function balanceOf(address) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+  'function transfer(address,uint256) returns (bool)'
+];
+
+const DEFAULT_EVM = {
+  eth: {
+    rpc: 'https://cloudflare-eth.com',
+    usdt: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606e48'
+  },
+  bsc: {
+    rpc: 'https://bsc-dataseed.binance.org',
+    usdt: '0x55d398326f99059ff775485246999027b3197955',
+    usdc: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d'
+  }
+};
+
+const DEFAULT_SOL = {
+  rpc: 'https://api.mainnet-beta.solana.com',
+  usdt: 'Es9vMFrzaCERxjEQ2e8gQx3G5n8N7xP4xLQow9i5ewwB',
+  usdc: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+};
+
+async function getEthers() {
+  return await import('ethers');
+}
+
+async function getSolana() {
+  return await import('@solana/web3.js');
+}
+
+async function getSplToken() {
+  return await import('@solana/spl-token');
+}
+
+async function deriveSolanaFromSeed(seedPhrase: string) {
+  const bip39 = await import('bip39');
+  const { derivePath } = await import('ed25519-hd-key');
+  const { Keypair } = await getSolana();
+  const seed = await bip39.mnemonicToSeed(seedPhrase);
+  const derived = derivePath("m/44'/501'/0'/0'", seed.toString('hex'));
+  return Keypair.fromSeed(derived.key);
+}
+
+async function deriveSolanaFromPrivate(privateKey: string) {
+  const { Keypair } = await getSolana();
+  const cleaned = privateKey.trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      return Keypair.fromSecretKey(Uint8Array.from(parsed));
+    }
+  } catch {
+    // ignore
+  }
+  const bs58 = await import('bs58');
+  const decoded = bs58.default.decode(cleaned);
+  return Keypair.fromSecretKey(decoded);
+}
+
+function isHexPrivateKey(value: string) {
+  return /^0x?[0-9a-fA-F]{64}$/.test(value.trim());
+}
+
+export async function deriveImportedWallet(mode: 'seed' | 'private', value: string): Promise<ImportedWallet> {
+  const cleaned = value.trim();
+  if (!cleaned) throw new Error('Missing key');
+
+  const result: ImportedWallet = {};
+  const { HDNodeWallet, Wallet } = await getEthers();
+
+  if (mode === 'seed') {
+    result.evm = {
+      wallet: HDNodeWallet.fromPhrase(cleaned, undefined, "m/44'/60'/0'/0/0"),
+      address: ''
+    };
+    result.evm.address = result.evm.wallet.address;
+
+    const solKeypair = await deriveSolanaFromSeed(cleaned);
+    result.sol = { keypair: solKeypair, address: solKeypair.publicKey.toBase58() };
+    return result;
+  }
+
+  if (isHexPrivateKey(cleaned)) {
+    const normalized = cleaned.startsWith('0x') ? cleaned : `0x${cleaned}`;
+    const evmWallet = new Wallet(normalized);
+    result.evm = { wallet: evmWallet, address: evmWallet.address };
+    return result;
+  }
+
+  const solKeypair = await deriveSolanaFromPrivate(cleaned);
+  result.sol = { keypair: solKeypair, address: solKeypair.publicKey.toBase58() };
+  return result;
+}
+
+async function getEvmProvider(chain: 'eth' | 'bsc') {
+  const { JsonRpcProvider } = await getEthers();
+  const rpc = chain === 'eth' ? DEFAULT_EVM.eth.rpc : DEFAULT_EVM.bsc.rpc;
+  return new JsonRpcProvider(rpc);
+}
+
+async function getEvmTokenContracts(chain: 'eth' | 'bsc', walletAddress: string) {
+  const { Contract } = await getEthers();
+  const provider = await getEvmProvider(chain);
+  const usdt = chain === 'eth' ? DEFAULT_EVM.eth.usdt : DEFAULT_EVM.bsc.usdt;
+  const usdc = chain === 'eth' ? DEFAULT_EVM.eth.usdc : DEFAULT_EVM.bsc.usdc;
+  return {
+    provider,
+    usdt: new Contract(usdt, ERC20_ABI, provider),
+    usdc: new Contract(usdc, ERC20_ABI, provider),
+    address: walletAddress
+  };
+}
+
+async function getSolConnection() {
+  const { Connection } = await getSolana();
+  const rpc = DEFAULT_SOL.rpc;
+  return new Connection(rpc, 'confirmed');
+}
+
+export async function getImportedBalances(wallet: ImportedWallet): Promise<ImportedBalances> {
+  const balances: ImportedBalances = {
+    eth: { native: 0, usdt: 0, usdc: 0 },
+    bsc: { native: 0, usdt: 0, usdc: 0 },
+    sol: { native: 0, usdt: 0, usdc: 0 }
+  };
+
+  const tasks: Promise<void>[] = [];
+
+  if (wallet.evm) {
+    tasks.push((async () => {
+    const { formatEther, formatUnits } = await getEthers();
+    const [ethProvider, bscProvider] = await Promise.all([
+      getEvmProvider('eth'),
+      getEvmProvider('bsc')
+    ]);
+    const [ethBalanceRaw, bscBalanceRaw] = await Promise.all([
+      ethProvider.getBalance(wallet.evm.address),
+      bscProvider.getBalance(wallet.evm.address)
+    ]);
+    balances.eth.native = Number(formatEther(ethBalanceRaw));
+    balances.bsc.native = Number(formatEther(bscBalanceRaw));
+
+    const [ethTokens, bscTokens] = await Promise.all([
+      getEvmTokenContracts('eth', wallet.evm.address),
+      getEvmTokenContracts('bsc', wallet.evm.address)
+    ]);
+
+    const [
+      ethUsdtRaw,
+      ethUsdtDec,
+      ethUsdcRaw,
+      ethUsdcDec,
+      bscUsdtRaw,
+      bscUsdtDec,
+      bscUsdcRaw,
+      bscUsdcDec
+    ] = await Promise.all([
+      ethTokens.usdt.balanceOf(wallet.evm.address),
+      ethTokens.usdt.decimals(),
+      ethTokens.usdc.balanceOf(wallet.evm.address),
+      ethTokens.usdc.decimals(),
+      bscTokens.usdt.balanceOf(wallet.evm.address),
+      bscTokens.usdt.decimals(),
+      bscTokens.usdc.balanceOf(wallet.evm.address),
+      bscTokens.usdc.decimals()
+    ]);
+    balances.eth.usdt = Number(formatUnits(ethUsdtRaw, ethUsdtDec));
+    balances.eth.usdc = Number(formatUnits(ethUsdcRaw, ethUsdcDec));
+    balances.bsc.usdt = Number(formatUnits(bscUsdtRaw, bscUsdtDec));
+    balances.bsc.usdc = Number(formatUnits(bscUsdcRaw, bscUsdcDec));
+    })());
+  }
+
+  if (wallet.sol) {
+    tasks.push((async () => {
+    const { LAMPORTS_PER_SOL, PublicKey } = await getSolana();
+    const connection = await getSolConnection();
+    const solBalance = await connection.getBalance(new PublicKey(wallet.sol.address));
+    balances.sol.native = Number((solBalance / LAMPORTS_PER_SOL).toFixed(6));
+
+    const usdtMint = DEFAULT_SOL.usdt;
+    const usdcMint = DEFAULT_SOL.usdc;
+    const { getAssociatedTokenAddress, getAccount } = await getSplToken();
+
+    const owner = new PublicKey(wallet.sol.address);
+    const usdtAta = await getAssociatedTokenAddress(new PublicKey(usdtMint), owner);
+    const usdcAta = await getAssociatedTokenAddress(new PublicKey(usdcMint), owner);
+
+    try {
+      const usdtAccount = await getAccount(connection, usdtAta);
+      balances.sol.usdt = Number(usdtAccount.amount) / 1_000_000;
+    } catch {
+      balances.sol.usdt = 0;
+    }
+
+    try {
+      const usdcAccount = await getAccount(connection, usdcAta);
+      balances.sol.usdc = Number(usdcAccount.amount) / 1_000_000;
+    } catch {
+      balances.sol.usdc = 0;
+    }
+    })());
+  }
+
+  if (tasks.length) {
+    await Promise.all(tasks);
+  }
+
+  return balances;
+}
+
+export async function sendImportedTransaction(params: {
+  wallet: ImportedWallet;
+  chain: 'eth' | 'bsc' | 'sol';
+  asset: 'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC';
+  to: string;
+  amount: number;
+}) {
+  const { wallet, chain, asset, to, amount } = params;
+  if (amount <= 0) throw new Error('Invalid amount');
+
+  if ((chain === 'eth' || chain === 'bsc') && wallet.evm) {
+    const { parseEther, parseUnits, Contract } = await getEthers();
+    const provider = await getEvmProvider(chain);
+    const evmWallet = wallet.evm.wallet.connect(provider);
+
+    if (asset === 'ETH' || asset === 'BNB') {
+      const tx = await evmWallet.sendTransaction({ to, value: parseEther(String(amount)) });
+      return { txid: tx.hash };
+    }
+
+    const tokenAddress =
+      asset === 'USDT'
+        ? chain === 'eth'
+          ? DEFAULT_EVM.eth.usdt
+          : DEFAULT_EVM.bsc.usdt
+        : chain === 'eth'
+          ? DEFAULT_EVM.eth.usdc
+          : DEFAULT_EVM.bsc.usdc;
+
+    const contract = new Contract(tokenAddress, ERC20_ABI, evmWallet);
+    const decimals = await contract.decimals();
+    const tx = await contract.transfer(to, parseUnits(String(amount), decimals));
+    return { txid: tx.hash };
+  }
+
+  if (chain === 'sol' && wallet.sol) {
+    const { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = await getSolana();
+    const connection = await getSolConnection();
+    const sender = wallet.sol.keypair;
+    const recipient = new PublicKey(to);
+
+    if (asset === 'SOL') {
+      const tx = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: sender.publicKey,
+          toPubkey: recipient,
+          lamports: Math.round(amount * LAMPORTS_PER_SOL)
+        })
+      );
+      const sig = await connection.sendTransaction(tx, [sender]);
+      return { txid: sig };
+    }
+
+    const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, createTransferInstruction } = await getSplToken();
+    const mint = new PublicKey(asset === 'USDT' ? DEFAULT_SOL.usdt : DEFAULT_SOL.usdc);
+    const senderAta = await getAssociatedTokenAddress(mint, sender.publicKey);
+    const recipientAta = await getAssociatedTokenAddress(mint, recipient);
+
+    const instructions: any[] = [];
+    const recipientInfo = await connection.getAccountInfo(recipientAta);
+    if (!recipientInfo) {
+      instructions.push(
+        createAssociatedTokenAccountInstruction(
+          sender.publicKey,
+          recipientAta,
+          recipient,
+          mint
+        )
+      );
+    }
+
+    const decimals = 6;
+    instructions.push(
+      createTransferInstruction(
+        senderAta,
+        recipientAta,
+        sender.publicKey,
+        Math.round(amount * Math.pow(10, decimals))
+      )
+    );
+
+    const tx = new Transaction().add(...instructions);
+    const sig = await connection.sendTransaction(tx, [sender]);
+    return { txid: sig };
+  }
+
+  throw new Error('Wallet not available for this chain');
+}

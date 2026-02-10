@@ -5,7 +5,14 @@ import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { api } from '../lib/api';
-import { getTelegramDisplayName } from '../lib/telegram';
+import { getTelegramDisplayName, getTelegramUser } from '../lib/telegram';
+import {
+  deriveImportedWallet,
+  getImportedBalances,
+  sendImportedTransaction,
+  ImportedBalances,
+  ImportedWallet
+} from '../lib/importWallet';
 
 type WalletStatus = {
   enabled: boolean;
@@ -16,6 +23,7 @@ type WalletStatus = {
   vault_balance?: number;
   wallet_alias?: string | null;
   wallet_alias_change_enabled?: boolean;
+  telegram_username?: string | null;
   vault_balances?: Record<string, { balance: number; address: string; last_balance_usd?: number }>;
   locked_amount?: number;
   earliest_unlock_cycle?: number | null;
@@ -61,7 +69,19 @@ const WalletPage = () => {
   const [walletMode, setWalletMode] = useState<WalletMode>('');
   const [importMode, setImportMode] = useState<ImportMode>('seed');
   const [importValue, setImportValue] = useState('');
+  const [importedWallet, setImportedWallet] = useState<ImportedWallet | null>(null);
+  const [importBalances, setImportBalances] = useState<ImportedBalances | null>(null);
+  const [importError, setImportError] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importRefreshing, setImportRefreshing] = useState(false);
+  const [importChain, setImportChain] = useState<'eth' | 'bsc' | 'sol'>('eth');
+  const [importAsset, setImportAsset] = useState<'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC'>('ETH');
+  const [importRecipient, setImportRecipient] = useState('');
+  const [importSendAmount, setImportSendAmount] = useState('');
+  const [importSending, setImportSending] = useState(false);
+  const [importTx, setImportTx] = useState<string | null>(null);
 
+  const telegramUser = getTelegramUser();
   const displayName = getTelegramDisplayName() || 'Runner';
 
   const chains = [
@@ -77,6 +97,25 @@ const WalletPage = () => {
     { symbol: 'USDT', chain: 'MULTI', hint: 'Stablecoin' },
     { symbol: 'USDC', chain: 'MULTI', hint: 'Stablecoin' }
   ];
+
+  const importAssetOptions = useMemo(() => {
+    if (importChain === 'eth') return ['ETH', 'USDT', 'USDC'] as const;
+    if (importChain === 'bsc') return ['BNB', 'USDT', 'USDC'] as const;
+    return ['SOL', 'USDT', 'USDC'] as const;
+  }, [importChain]);
+
+  useEffect(() => {
+    if (!importAssetOptions.includes(importAsset)) {
+      setImportAsset(importAssetOptions[0]);
+    }
+  }, [importAssetOptions, importAsset]);
+
+  const getExplorerTxUrl = (chain: 'eth' | 'bsc' | 'sol', txid: string) => {
+    if (!txid) return '';
+    if (chain === 'eth') return `https://etherscan.io/tx/${txid}`;
+    if (chain === 'bsc') return `https://bscscan.com/tx/${txid}`;
+    return `https://solscan.io/tx/${txid}`;
+  };
 
   const withTimeout = async <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -159,6 +198,29 @@ const WalletPage = () => {
   }, [loading, status?.wallet_alias, termsAccepted, walletMode]);
 
   useEffect(() => {
+    if (!importedWallet) return;
+    let active = true;
+    const refresh = async () => {
+      setImportRefreshing(true);
+      try {
+        const balances = await getImportedBalances(importedWallet);
+        if (active) {
+          setImportBalances(balances);
+          setImportError('');
+        }
+      } catch (err: any) {
+        if (active) setImportError(err?.message || 'Failed to load balances');
+      } finally {
+        if (active) setImportRefreshing(false);
+      }
+    };
+    refresh();
+    return () => {
+      active = false;
+    };
+  }, [importedWallet]);
+
+  useEffect(() => {
     if (!showOnboarding || (onboardingStep !== 'alias' && onboardingStep !== 'terms')) return;
     const prompt =
       onboardingStep === 'alias'
@@ -185,6 +247,20 @@ const WalletPage = () => {
   const lockedAmount = status?.locked_amount ?? 0;
   const unlockCycle = status?.earliest_unlock_cycle;
   const allowAliasChange = status?.wallet_alias_change_enabled === true;
+  const telegramUsername = (status?.telegram_username || telegramUser?.username || '').trim();
+  const importHasEvm = !!importedWallet?.evm;
+  const importHasSol = !!importedWallet?.sol;
+
+  useEffect(() => {
+    if (!importedWallet) return;
+    if (!importHasEvm && importChain !== 'sol') {
+      setImportChain('sol');
+      return;
+    }
+    if (!importHasSol && importChain === 'sol') {
+      setImportChain('eth');
+    }
+  }, [importedWallet, importHasEvm, importHasSol, importChain]);
 
   const numericAmount = Number(amount || 0);
   const feeAmount = useMemo(() => {
@@ -290,6 +366,10 @@ const WalletPage = () => {
       toast.error('Enter a Rogue ID');
       return;
     }
+    if (telegramUsername && clean.replace(/^@/, '').toLowerCase() === telegramUsername.replace(/^@/, '').toLowerCase()) {
+      toast.error('Rogue ID cannot match your Telegram username');
+      return;
+    }
     setAliasSaving(true);
     try {
       const res: any = await withTimeout(api.setWalletAlias(clean), 8000);
@@ -340,20 +420,88 @@ const WalletPage = () => {
     setOnboardingStep('done');
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!importValue.trim()) {
       toast.error('Enter your seed phrase or private key');
       return;
     }
+    setImportLoading(true);
+    setImportError('');
     try {
-      localStorage.setItem(MODE_KEY, 'import');
-    } catch {
-      // ignore
+      const wallet = await deriveImportedWallet(importMode, importValue);
+      setImportedWallet(wallet);
+      const balances = await getImportedBalances(wallet);
+      setImportBalances(balances);
+      setImportTx(null);
+      try {
+        localStorage.setItem(MODE_KEY, 'import');
+      } catch {
+        // ignore
+      }
+      setWalletMode('import');
+      setImportValue('');
+      setShowOnboarding(false);
+      setOnboardingStep('done');
+      toast.success('Wallet imported');
+    } catch (err: any) {
+      const message = err?.message || 'Failed to import wallet';
+      setImportError(message);
+      toast.error(message);
+    } finally {
+      setImportLoading(false);
     }
-    setWalletMode('import');
-    toast.success('Wallet imported (local only)');
-    setShowOnboarding(false);
-    setOnboardingStep('done');
+  };
+
+  const handleRefreshImported = async () => {
+    if (!importedWallet) return;
+    setImportRefreshing(true);
+    try {
+      const balances = await getImportedBalances(importedWallet);
+      setImportBalances(balances);
+      setImportError('');
+      toast.success('Balances updated');
+    } catch (err: any) {
+      const message = err?.message || 'Failed to refresh balances';
+      setImportError(message);
+      toast.error(message);
+    } finally {
+      setImportRefreshing(false);
+    }
+  };
+
+  const handleSendImported = async () => {
+    if (!importedWallet) {
+      toast.error('Import your wallet first');
+      return;
+    }
+    if (!importRecipient.trim()) {
+      toast.error('Enter a recipient address');
+      return;
+    }
+    const amountValue = Number(importSendAmount || 0);
+    if (!amountValue || amountValue <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    setImportSending(true);
+    try {
+      const res = await sendImportedTransaction({
+        wallet: importedWallet,
+        chain: importChain,
+        asset: importAsset,
+        to: importRecipient.trim(),
+        amount: amountValue
+      });
+      setImportTx(res?.txid || null);
+      toast.success('Transaction sent');
+      await handleRefreshImported();
+      setImportRecipient('');
+      setImportSendAmount('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to send transaction');
+    } finally {
+      setImportSending(false);
+    }
   };
 
   const aliasDisplay = status?.wallet_alias || '';
@@ -487,8 +635,9 @@ const WalletPage = () => {
                   onChange={(e) => setImportValue(e.target.value)}
                   placeholder={importMode === 'seed' ? 'Enter 12 or 24 word seed phrase' : 'Enter private key'}
                 />
-                <button className="matrix-button" onClick={handleImport}>
-                  Import Wallet
+                {importError && <div className="mt-2 text-xs text-rose-200">{importError}</div>}
+                <button className="matrix-button" onClick={handleImport} disabled={importLoading}>
+                  {importLoading ? 'Importing...' : 'Import Wallet'}
                 </button>
               </div>
             )}
@@ -561,6 +710,191 @@ const WalletPage = () => {
             )}
           </div>
         </div>
+
+        {walletMode === 'import' && (
+          <div className="bg-white rounded-2xl p-6 shadow mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-100">Imported Wallet</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefreshImported}
+                  disabled={!importedWallet || importRefreshing}
+                  className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-amber-200 hover:border-amber-300 disabled:opacity-50"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  {importRefreshing ? 'Refreshing' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+            {!importedWallet ? (
+              <div className="rounded-2xl border border-amber-400/30 bg-black/40 p-4 text-slate-300">
+                <div className="text-sm text-slate-100">Imported wallet not loaded</div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Re-import your seed phrase or private key to load balances and send transactions.
+                </div>
+                <button
+                  onClick={() => {
+                    setOnboardingStep('import');
+                    setShowOnboarding(true);
+                  }}
+                  className="mt-3 rounded-xl bg-amber-500/90 text-black py-2 px-4 text-xs font-semibold uppercase tracking-widest hover:bg-amber-400"
+                >
+                  Re-import Wallet
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
+                      <span>EVM Address</span>
+                      <button
+                        onClick={() => handleCopy(importedWallet?.evm?.address || '')}
+                        className="inline-flex items-center gap-1 text-amber-200 hover:text-amber-100"
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs break-all text-slate-200">
+                      {importedWallet?.evm?.address || 'Not available'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
+                      <span>Solana Address</span>
+                      <button
+                        onClick={() => handleCopy(importedWallet?.sol?.address || '')}
+                        className="inline-flex items-center gap-1 text-amber-200 hover:text-amber-100"
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs break-all text-slate-200">
+                      {importedWallet?.sol?.address || 'Not available'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                    <div className="text-xs uppercase tracking-[0.25em] text-slate-400">Ethereum</div>
+                    <div className="mt-2 text-sm text-emerald-200">
+                      {importBalances?.eth.native?.toFixed(4) || '0'} ETH
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      USDT: {importBalances?.eth.usdt?.toFixed(2) || '0'} | USDC:{' '}
+                      {importBalances?.eth.usdc?.toFixed(2) || '0'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                    <div className="text-xs uppercase tracking-[0.25em] text-slate-400">BSC</div>
+                    <div className="mt-2 text-sm text-emerald-200">
+                      {importBalances?.bsc.native?.toFixed(4) || '0'} BNB
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      USDT: {importBalances?.bsc.usdt?.toFixed(2) || '0'} | USDC:{' '}
+                      {importBalances?.bsc.usdc?.toFixed(2) || '0'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                    <div className="text-xs uppercase tracking-[0.25em] text-slate-400">Solana</div>
+                    <div className="mt-2 text-sm text-emerald-200">
+                      {importBalances?.sol.native?.toFixed(4) || '0'} SOL
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      USDT: {importBalances?.sol.usdt?.toFixed(2) || '0'} | USDC:{' '}
+                      {importBalances?.sol.usdc?.toFixed(2) || '0'}
+                    </div>
+                  </div>
+                </div>
+
+                {importError && (
+                  <div className="mt-3 text-xs text-rose-200">{importError}</div>
+                )}
+
+                <div className="mt-6 rounded-2xl border border-amber-400/30 bg-black/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-amber-200">Send from Imported Wallet</h3>
+                    <Send className="h-4 w-4 text-amber-200" />
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="flex gap-2">
+                      {chains.map((chain) => {
+                        const isEvmChain = chain.id === 'eth' || chain.id === 'bsc';
+                        const disabled = isEvmChain ? !importHasEvm : !importHasSol;
+                        return (
+                          <button
+                            key={`import-${chain.id}`}
+                            onClick={() => {
+                              if (!disabled) setImportChain(chain.id as 'eth' | 'bsc' | 'sol');
+                            }}
+                            disabled={disabled}
+                            className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
+                              importChain === chain.id
+                                ? 'border-amber-400 text-amber-200 bg-black/60'
+                                : 'border-slate-700 text-slate-400 bg-black/30'
+                            } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          >
+                            {chain.symbol}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-2">
+                      {importAssetOptions.map((asset) => (
+                        <button
+                          key={`import-asset-${asset}`}
+                          onClick={() => setImportAsset(asset)}
+                          className={`flex-1 rounded-xl border px-2 py-2 text-[10px] uppercase tracking-[0.25em] ${
+                            importAsset === asset
+                              ? 'border-emerald-400 text-emerald-200 bg-black/60'
+                              : 'border-slate-700 text-slate-400 bg-black/30'
+                          }`}
+                        >
+                          {asset}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      value={importRecipient}
+                      onChange={(e) => setImportRecipient(e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                      placeholder="Recipient address"
+                    />
+                    <input
+                      value={importSendAmount}
+                      onChange={(e) => setImportSendAmount(e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                      placeholder="Amount"
+                    />
+                    <button
+                      onClick={handleSendImported}
+                      disabled={importSending}
+                      className="rounded-xl bg-amber-500/90 text-black py-2 text-sm font-semibold uppercase tracking-widest hover:bg-amber-400 disabled:opacity-50"
+                    >
+                      {importSending ? 'Sending...' : 'Send'}
+                    </button>
+                  </div>
+                  {importTx && (
+                    <div className="mt-3 text-xs text-slate-300">
+                      Tx: {importTx.slice(0, 12)}...{' '}
+                      <a
+                        className="text-amber-200 hover:text-amber-100 underline"
+                        href={getExplorerTxUrl(importChain, importTx)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl p-6 shadow mb-8">
           <div className="flex items-center justify-between mb-4">

@@ -5,6 +5,11 @@ export const API_BASE_URL =
   'https://mambo-authorization-similar-packages.trycloudflare.com';
 
 const DEV_TELEGRAM_ID = import.meta.env.VITE_DEV_TELEGRAM_ID || '';
+const CACHE_TTL_MS = 12000;
+const STORAGE_TTL_MS = 60000;
+const STORAGE_PREFIX = 'api_cache:';
+const inflightRequests = new Map<string, Promise<unknown>>();
+const responseCache = new Map<string, { ts: number; data: unknown }>();
 
 type ApiError = {
   error?: string;
@@ -25,10 +30,60 @@ async function parseErrorResponse(res: Response): Promise<string> {
   }
 }
 
+function readStorageCache(key: string): { ts: number; data: unknown } | null {
+  try {
+    if (typeof sessionStorage === 'undefined') return null;
+    const raw = sessionStorage.getItem(`${STORAGE_PREFIX}${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { ts?: number; data?: unknown };
+    if (!parsed || typeof parsed.ts !== 'number') return null;
+    if (Date.now() - parsed.ts > STORAGE_TTL_MS) return null;
+    return { ts: parsed.ts, data: parsed.data };
+  } catch {
+    return null;
+  }
+}
+
+function writeStorageCache(key: string, data: unknown): void {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify({ ts: Date.now(), data }));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const isCacheable = method === 'GET' && !options.body;
+  const cacheKey = `${method}:${API_BASE_URL}${path}`;
+  const now = Date.now();
+
+  if (isCacheable) {
+    const cached = responseCache.get(cacheKey);
+    if (cached && now - cached.ts < CACHE_TTL_MS) {
+      return cached.data as T;
+    }
+    const inflight = inflightRequests.get(cacheKey);
+    if (inflight) {
+      return (await inflight) as T;
+    }
+    const stored = readStorageCache(cacheKey);
+    if (stored) {
+      responseCache.set(cacheKey, stored);
+      return stored.data as T;
+    }
+  }
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const controller = options.signal ? null : new AbortController();
+  if (controller) {
+    timeoutHandle = setTimeout(() => controller.abort(), 12000);
+  }
+
   const initData = getInitData();
   const headers = new Headers(options.headers || {});
 
@@ -44,7 +99,7 @@ export async function apiFetch<T>(
 
   if (!headers.has('X-Telegram-Login') && !headers.has('X-Telegram-Init-Data')) {
     if (DEV_TELEGRAM_ID) {
-    headers.set('X-Telegram-Id', DEV_TELEGRAM_ID);
+      headers.set('X-Telegram-Id', DEV_TELEGRAM_ID);
     } else {
       const fallbackId = getTelegramId();
       if (fallbackId) {
@@ -62,26 +117,49 @@ export async function apiFetch<T>(
     headers.set('ngrok-skip-browser-warning', '1');
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers
-  });
+  const doFetch = async (): Promise<T> => {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      signal: options.signal || controller?.signal,
+      headers
+    });
 
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('text/html')) {
-    const text = await res.text();
-    const snippet = text.slice(0, 120).replace(/\s+/g, ' ').trim();
-    throw new Error(
-      `API returned HTML (likely wrong base URL or ngrok warning). Status ${res.status}. Snippet: ${snippet}`
-    );
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      const text = await res.text();
+      const snippet = text.slice(0, 120).replace(/\s+/g, ' ').trim();
+      throw new Error(
+        `API returned HTML (likely wrong base URL or ngrok warning). Status ${res.status}. Snippet: ${snippet}`
+      );
+    }
+
+    if (!res.ok) {
+      const message = await parseErrorResponse(res);
+      throw new Error(message || 'Request failed');
+    }
+
+    const data = (await res.json()) as T;
+    if (isCacheable) {
+      responseCache.set(cacheKey, { ts: Date.now(), data });
+      writeStorageCache(cacheKey, data);
+    }
+    return data;
+  };
+
+  const requestPromise = isCacheable ? doFetch() : doFetch();
+  if (isCacheable) {
+    inflightRequests.set(cacheKey, requestPromise);
   }
-
-  if (!res.ok) {
-    const message = await parseErrorResponse(res);
-    throw new Error(message || 'Request failed');
+  try {
+    return await requestPromise;
+  } finally {
+    if (isCacheable) {
+      inflightRequests.delete(cacheKey);
+    }
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
   }
-
-  return (await res.json()) as T;
 }
 
 export const api = {
