@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+ï»¿import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Copy, RefreshCw, Send, ShieldCheck, Terminal, UserCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../components/Header';
@@ -14,10 +14,14 @@ type WalletStatus = {
   bot_balance?: number;
   vault_balance?: number;
   wallet_alias?: string | null;
+  wallet_alias_change_enabled?: boolean;
   vault_balances?: Record<
     string,
     { balance: number; address: string; last_balance_usd?: number }
   >;
+  locked_amount?: number;
+  earliest_unlock_cycle?: number | null;
+  active_locks?: Array<{ amount: number; unlock_cycle?: number | null }>;
   addresses: Record<string, { address: string; chain: string }>;
   is_admin?: boolean;
 };
@@ -28,6 +32,7 @@ const DEPOSIT_FEE_PERCENT = 0.1;
 const Wallet = () => {
   const [status, setStatus] = useState<WalletStatus | null>(null);
   const [transfers, setTransfers] = useState<any[]>([]);
+  const [vaultActivity, setVaultActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -56,9 +61,10 @@ const Wallet = () => {
   ];
 
   const loadAll = async () => {
-    const [statusRes, transferRes] = await Promise.allSettled([
+    const [statusRes, transferRes, activityRes] = await Promise.allSettled([
       api.getWalletStatus(),
-      api.getWalletTransfers(20)
+      api.getWalletTransfers(20),
+      api.getWalletActivity(20)
     ]);
 
     if (statusRes.status === 'fulfilled') {
@@ -69,6 +75,9 @@ const Wallet = () => {
     }
     if (transferRes.status === 'fulfilled') {
       setTransfers(transferRes.value || []);
+    }
+    if (activityRes.status === 'fulfilled') {
+      setVaultActivity(activityRes.value || []);
     }
   };
 
@@ -121,6 +130,9 @@ const Wallet = () => {
   const vaultBalance = status?.vault_balance ?? 0;
   const enabled = status?.enabled !== false;
   const isAdmin = !!status?.is_admin;
+  const lockedAmount = status?.locked_amount ?? 0;
+  const unlockCycle = status?.earliest_unlock_cycle;
+  const allowAliasChange = status?.wallet_alias_change_enabled === true;
 
   const numericAmount = Number(amount || 0);
   const feeAmount = useMemo(() => {
@@ -208,7 +220,8 @@ const Wallet = () => {
       await api.updateWalletSettings({
         wallet_enabled: adminEnabled,
         wallet_transfer_fee_percent: Number(adminFee),
-        wallet_transfer_limit: Number(adminLimit)
+        wallet_transfer_limit: Number(adminLimit),
+        wallet_alias_change_enabled: allowAliasChange
       });
       toast.success('Wallet settings updated');
       await loadAll();
@@ -299,12 +312,24 @@ const Wallet = () => {
           <div>
             <h1 className="text-3xl font-bold text-slate-100">Rogue Wallet</h1>
             <p className="text-slate-400 text-sm">
-              On-chain vault + internal transfers, fully synced with Rogue Engine.
+              On-chain vault plus internal transfers, fully synced with Rogue Engine.
             </p>
             {aliasDisplay && (
               <div className="mt-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
                 Rogue ID: {aliasDisplay}
               </div>
+            )}
+            {aliasDisplay && allowAliasChange && (
+              <button
+                onClick={() => {
+                  setAliasInput(aliasDisplay);
+                  setAliasStep('alias');
+                  setShowOnboarding(true);
+                }}
+                className="mt-2 text-xs uppercase tracking-[0.3em] text-amber-200 hover:text-amber-100"
+              >
+                Change Rogue ID
+              </button>
             )}
           </div>
           <button
@@ -342,10 +367,15 @@ const Wallet = () => {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Limit</div>
-            <div className="text-2xl font-bold text-slate-100 mt-2">
-              ${transferLimit.toLocaleString()}
+            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Locked Funds</div>
+            <div className="text-2xl font-bold text-rose-200 mt-2">
+              ${Number(lockedAmount).toLocaleString()}
             </div>
+            {lockedAmount > 0 && (
+              <div className="text-xs text-slate-400 mt-2">
+                Unlocks after Cycle {unlockCycle || '-'}
+              </div>
+            )}
           </div>
         </div>
 
@@ -444,7 +474,39 @@ const Wallet = () => {
                 </button>
               </div>
               <div className="mt-2 text-xs text-slate-400">
-                Fee: ${pushFee.toFixed(2)} · Net to bot: ${pushNet.toFixed(2)}
+                Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-800/60 bg-black/40 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-100">Vault Activity</h3>
+                <ShieldCheck className="h-4 w-4 text-emerald-300" />
+              </div>
+              <div className="mt-3 space-y-2 text-xs text-slate-300">
+                {vaultActivity.length === 0 && (
+                  <div className="text-slate-500">No vault activity yet.</div>
+                )}
+                {vaultActivity.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-800/60 pb-2"
+                  >
+                    <div>
+                      <div className="text-slate-100">
+                        {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${
+                          Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)
+                        }
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {tx.chain ? tx.chain.toUpperCase() : '-'}
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 sm:mt-0">
+                      {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -479,7 +541,7 @@ const Wallet = () => {
                   disabled={!enabled || sending}
                 />
                 <div className="mt-2 text-xs text-slate-400">
-                  Fee: ${feeAmount.toFixed(2)} · Recipient receives: ${netAmount.toFixed(2)}
+                  Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}
                 </div>
               </div>
               <button
@@ -490,7 +552,7 @@ const Wallet = () => {
                 {sending ? 'Sending...' : 'Send'}
               </button>
               <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3 text-xs text-slate-400">
-                Transfers lock for two cycles before withdrawal. Tier upgrades/downgrades apply instantly.
+                Transfers lock for two cycles before withdrawal. Tier changes apply instantly.
               </div>
             </div>
           </div>
@@ -507,8 +569,8 @@ const Wallet = () => {
             {transfers.map((tx) => {
               const isOut = tx.type === 'wallet_transfer_out';
               const counterpart = isOut
-                ? tx.meta?.to_alias || tx.meta?.to || 'â€”'
-                : tx.meta?.from_alias || tx.meta?.from || 'â€”';
+                ? tx.meta?.to_alias || tx.meta?.to || '-'
+                : tx.meta?.from_alias || tx.meta?.from || '-';
               return (
                 <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-800/60 pb-2">
                   <div>
@@ -564,6 +626,16 @@ const Wallet = () => {
                 />
               </div>
             </div>
+            <label className="mt-4 flex items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={allowAliasChange}
+                onChange={(e) =>
+                  setStatus(prev => (prev ? { ...prev, wallet_alias_change_enabled: e.target.checked } : prev))
+                }
+              />
+              Allow Rogue ID changes
+            </label>
             <button
               onClick={handleSaveSettings}
               disabled={savingAdmin}

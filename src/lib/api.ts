@@ -101,6 +101,8 @@ export const api = {
   getWalletStatus: () => apiFetch('/api/wallet/status'),
   getWalletTransfers: (limit = 20) =>
     apiFetch(`/api/wallet/transfers?limit=${encodeURIComponent(limit)}`),
+  getWalletActivity: (limit = 20) =>
+    apiFetch(`/api/wallet/activity?limit=${encodeURIComponent(limit)}`),
   walletTransfer: (to: string, amount: number) =>
     apiFetch('/api/wallet/transfer', {
       method: 'POST',
@@ -126,6 +128,7 @@ export const api = {
     wallet_enabled?: boolean;
     wallet_transfer_fee_percent?: number;
     wallet_transfer_limit?: number;
+    wallet_alias_change_enabled?: boolean;
   }) =>
     apiFetch('/api/wallet/settings', {
       method: 'POST',
