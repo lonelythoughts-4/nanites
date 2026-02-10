@@ -237,7 +237,7 @@ const WalletPage = () => {
       if (index >= prompt.length) {
         clearInterval(timer);
       }
-    }, 16);
+    }, 28);
     return () => clearInterval(timer);
   }, [showOnboarding, onboardingStep, displayName]);
 
