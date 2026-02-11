@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, ShieldCheck, Timer, Zap } from 'lucide-react';
+import { Activity, BadgeCheck, Gauge, ShieldCheck, Timer } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -120,40 +120,49 @@ const Trade = () => {
   const label = useMemo(() => {
     switch (status) {
       case 'active':
-        return 'STOP TRADE';
+        return 'Stop Trading';
       case 'arming':
-        return 'ARMING';
+        return 'Starting';
       case 'stopping':
-        return 'DISENGAGING';
+        return 'Stopping';
       default:
-        return 'START TRADE';
+        return 'Start Trading';
     }
   }, [status]);
 
   const subLabel = useMemo(() => {
     switch (status) {
       case 'active':
-        return 'Live cycle engaged';
+        return 'Strategy live';
       case 'arming':
-        return 'Locking signal';
+        return 'Starting strategy';
       case 'stopping':
-        return 'Cooling circuits';
+        return 'Stopping strategy';
       default:
-        return 'Tap to ignite';
+        return 'Ready to deploy';
     }
   }, [status]);
 
-  const statusTone = status === 'active' ? 'trade-status-active' : status === 'arming' ? 'trade-status-arming' : status === 'stopping' ? 'trade-status-stopping' : 'trade-status-idle';
+  const statusTone =
+    status === 'active'
+      ? 'trade-status-active'
+      : status === 'arming'
+        ? 'trade-status-arming'
+        : status === 'stopping'
+          ? 'trade-status-stopping'
+          : 'trade-status-idle';
 
   const displayName =
     dashboard?.user?.first_name ||
     dashboard?.user?.username ||
     'Runner';
   const available = Number(dashboard?.balance?.available || 0);
+  const totalBalance = Number(dashboard?.balance?.total || available || 0);
   const tier = dashboard?.user?.tier ? `TIER ${dashboard.user.tier}` : 'TIER 1';
   const cycleDay = cycleInfo?.cycle_day ?? tradeInfo?.days_elapsed ?? dashboard?.cycle?.day ?? 0;
   const daysLeft = cycleInfo?.days_remaining ?? tradeInfo?.days_remaining ?? 14 - cycleDay;
   const canStart = tradeInfo?.can_start !== false;
+  const cycleProgress = Math.min(100, Math.max(0, (cycleDay / 14) * 100));
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -166,144 +175,156 @@ const Trade = () => {
       <Header variant="dark" />
 
       <main className="trade-frame">
-        <section className="trade-hero">
-          <div className="trade-hero-copy">
-            <div className="trade-kicker">Rogue Engine Control</div>
-            <h1 className="trade-title">
-              {displayName}, command the trade core.
-            </h1>
+        <section className="trade-top">
+          <div>
+            <div className="trade-kicker">Rogue Engine</div>
+            <h1 className="trade-title">Trade Control</h1>
             <p className="trade-subtitle">
-              One tap to ignite. One tap to cool down. Stay synchronized with your cycle.
+              Professional execution panel for your cycle. Start or stop the strategy with full visibility.
             </p>
-            <div className="trade-meta-row">
-              <div className="trade-meta">
-                <span>Tier</span>
-                <strong>{tier}</strong>
-              </div>
-              <div className="trade-meta">
-                <span>Cycle Day</span>
-                <strong>{cycleDay} / 14</strong>
-              </div>
-              <div className="trade-meta">
-                <span>Days Left</span>
-                <strong>{Math.max(0, daysLeft)}</strong>
-              </div>
-              <div className="trade-meta">
-                <span>Available</span>
-                <strong>${available.toLocaleString()}</strong>
-              </div>
-            </div>
           </div>
-
-          <div className="trade-control">
-            <div
-              className={`trade-ring ${status}`}
-              role="button"
-              tabIndex={0}
-              aria-pressed={status === 'active'}
-              aria-disabled={actionState !== 'idle'}
-              onClick={handleToggle}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  handleToggle();
-                }
-              }}
-            >
-              <span className="trade-orbit trade-orbit-1" />
-              <span className="trade-orbit trade-orbit-2" />
-              <span className="trade-orbit trade-orbit-3" />
-              <button
-                type="button"
-                className="trade-orb"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleToggle();
-                }}
-                aria-pressed={status === 'active'}
-                disabled={status === 'arming' || status === 'stopping'}
-              >
-                <span className="trade-orb-label">{label}</span>
-                <span className="trade-orb-sub">{subLabel}</span>
-              </button>
+          <div className="trade-top-cards">
+            <div className="trade-top-card">
+              <span>Available</span>
+              <strong>${available.toLocaleString()}</strong>
             </div>
-            <div className={`trade-status ${statusTone}`}>
-              <span>Status</span>
-              <strong>{status === 'active' ? 'Trading Live' : status === 'arming' ? 'Arming' : status === 'stopping' ? 'Stopping' : 'Idle'}</strong>
+            <div className="trade-top-card">
+              <span>Total Balance</span>
+              <strong>${totalBalance.toLocaleString()}</strong>
             </div>
-            {!canStart && status !== 'active' && (
-              <div className="trade-warning">
-                Minimum balance of $20 required to start trading.
-              </div>
-            )}
+            <div className="trade-top-card">
+              <span>Tier</span>
+              <strong>{tier}</strong>
+            </div>
           </div>
         </section>
 
         <section className="trade-grid">
-          <div className="trade-card">
-            <div className="trade-card-title">
-              <Timer className="h-4 w-4 text-cyan-300" />
-              <span>Session Time</span>
+          <div className="trade-main">
+            <div className="trade-card trade-command">
+              <div className="trade-command-header">
+                <div>
+                  <div className="trade-label">Status</div>
+                  <div className={`trade-status ${statusTone}`}>
+                    {status === 'active'
+                      ? 'Active'
+                      : status === 'arming'
+                        ? 'Starting'
+                        : status === 'stopping'
+                          ? 'Stopping'
+                          : 'Idle'}
+                  </div>
+                </div>
+                <span className={`trade-pill ${statusTone}`}>{subLabel}</span>
+              </div>
+              <div className="trade-command-body">
+                <button
+                  type="button"
+                  className="trade-primary-btn"
+                  onClick={handleToggle}
+                  disabled={status === 'arming' || status === 'stopping'}
+                >
+                  {label}
+                </button>
+                {!canStart && status !== 'active' && (
+                  <div className="trade-warning">
+                    Minimum balance of $20 required to start trading.
+                  </div>
+                )}
+                <div className="trade-session">
+                  <div>
+                    <span>Session time</span>
+                    <strong>{status === 'active' ? formatTime(sessionSeconds) : '0m 00s'}</strong>
+                  </div>
+                  <div>
+                    <span>Cycle day</span>
+                    <strong>{cycleDay} / 14</strong>
+                  </div>
+                  <div>
+                    <span>Days left</span>
+                    <strong>{Math.max(0, daysLeft)}</strong>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="trade-card-value">
-              {status === 'active' ? formatTime(sessionSeconds) : '0m 00s'}
-            </div>
-            <div className="trade-card-sub">
-              {status === 'active'
-                ? 'Pulse locked. Maintain focus.'
-                : 'Start trading to track your live session.'}
+
+            <div className="trade-card trade-log">
+              <div className="trade-card-title">
+                <Activity className="h-4 w-4 text-slate-300" />
+                <span>Trade Activity</span>
+                <span className="trade-log-pill">{loading ? 'Syncing' : 'Live'}</span>
+              </div>
+              <div className="trade-log-list">
+                <div className="trade-log-row">
+                  <span>Engine synchronized</span>
+                  <span>Just now</span>
+                </div>
+                <div className="trade-log-row">
+                  <span>Cycle check</span>
+                  <span>{cycleDay ? `Day ${cycleDay}` : 'Pending'}</span>
+                </div>
+                <div className="trade-log-row">
+                  <span>Available balance</span>
+                  <span>${available.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="trade-card">
-            <div className="trade-card-title">
-              <Zap className="h-4 w-4 text-amber-300" />
-              <span>Trade Signal</span>
+          <div className="trade-side">
+            <div className="trade-card">
+              <div className="trade-card-title">
+                <Timer className="h-4 w-4 text-slate-300" />
+                <span>Session</span>
+              </div>
+              <div className="trade-card-value">
+                {status === 'active' ? formatTime(sessionSeconds) : '0m 00s'}
+              </div>
+              <div className="trade-card-sub">
+                {status === 'active'
+                  ? 'Monitoring live execution.'
+                  : 'Start trading to begin session tracking.'}
+              </div>
             </div>
-            <div className="trade-card-value">
-              {status === 'active' ? 'Signal Stable' : 'Awaiting Command'}
-            </div>
-            <div className="trade-card-sub">
-              {status === 'active'
-                ? 'Auto-routing enabled for the current cycle.'
-                : 'Deploy when you are ready to run the cycle.'}
-            </div>
-          </div>
 
-          <div className="trade-card">
-            <div className="trade-card-title">
-              <ShieldCheck className="h-4 w-4 text-emerald-300" />
-              <span>Risk Guard</span>
+            <div className="trade-card">
+              <div className="trade-card-title">
+                <Gauge className="h-4 w-4 text-slate-300" />
+                <span>Cycle Progress</span>
+              </div>
+              <div className="trade-progress">
+                <div className="trade-progress-bar">
+                  <span style={{ width: `${cycleProgress}%` }} />
+                </div>
+                <div className="trade-progress-meta">
+                  <span>Day {cycleDay}</span>
+                  <span>{Math.max(0, daysLeft)} days left</span>
+                </div>
+              </div>
             </div>
-            <div className="trade-card-value">Protection Live</div>
-            <div className="trade-card-sub">
-              Cycle rules and withdrawal locks are enforced automatically.
-            </div>
-          </div>
-        </section>
 
-        <section className="trade-log">
-          <div className="trade-log-header">
-            <div className="trade-log-title">
-              <Activity className="h-4 w-4 text-indigo-300" />
-              <span>Trade Activity</span>
+            <div className="trade-card">
+              <div className="trade-card-title">
+                <ShieldCheck className="h-4 w-4 text-slate-300" />
+                <span>Risk & Limits</span>
+              </div>
+              <div className="trade-card-value">Guarded</div>
+              <div className="trade-card-sub">
+                Cycle rules and withdrawal locks remain enforced.
+              </div>
             </div>
-            <span className="trade-log-pill">
-              {loading ? 'Syncing' : 'Live Feed'}
-            </span>
-          </div>
-          <div className="trade-log-list">
-            <div className="trade-log-row">
-              <span>Trade core synchronized</span>
-              <span>Just now</span>
-            </div>
-            <div className="trade-log-row">
-              <span>Cycle gates verified</span>
-              <span>{cycleDay ? `Day ${cycleDay}` : 'Checking'}</span>
-            </div>
-            <div className="trade-log-row">
-              <span>Balance channel armed</span>
-              <span>${available.toLocaleString()}</span>
+
+            <div className="trade-card">
+              <div className="trade-card-title">
+                <BadgeCheck className="h-4 w-4 text-slate-300" />
+                <span>Execution Quality</span>
+              </div>
+              <div className="trade-card-value">{status === 'active' ? 'Stable' : 'Standby'}</div>
+              <div className="trade-card-sub">
+                {status === 'active'
+                  ? 'Signals aligned with the current cycle.'
+                  : 'Awaiting manual start command.'}
+              </div>
             </div>
           </div>
         </section>

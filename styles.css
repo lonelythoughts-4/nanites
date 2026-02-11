@@ -577,6 +577,298 @@ All colors MUST be HSL.
     padding-bottom: 0;
   }
 
+  /* Professional trade layout overrides */
+  .trade-shell {
+    background:
+      radial-gradient(circle at 20% 10%, rgba(59, 130, 246, 0.18), transparent 55%),
+      radial-gradient(circle at 80% 0%, rgba(15, 23, 42, 0.6), transparent 60%),
+      #05070d;
+    font-family: 'Poppins', 'Fredoka', 'Comic Neue', sans-serif;
+  }
+
+  .trade-frame {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  .trade-top {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .trade-top-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .trade-top-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: rgba(148, 163, 184, 0.8);
+  }
+
+  .trade-top-card strong {
+    color: #f8fafc;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .trade-kicker {
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.8);
+  }
+
+  .trade-title {
+    margin-top: 0.75rem;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    color: #f8fafc;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .trade-subtitle {
+    margin-top: 0.5rem;
+    color: rgba(226, 232, 240, 0.72);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 560px;
+  }
+
+  .trade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .trade-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .trade-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .trade-card {
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 20px;
+    padding: 1.4rem;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .trade-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.8);
+  }
+
+  .trade-log-pill {
+    margin-left: auto;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.6rem;
+  }
+
+  .trade-card-value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #f8fafc;
+  }
+
+  .trade-card-sub {
+    color: rgba(148, 163, 184, 0.8);
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .trade-command-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .trade-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.75);
+  }
+
+  .trade-status {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-top: 0.35rem;
+  }
+
+  .trade-pill {
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: rgba(226, 232, 240, 0.8);
+  }
+
+  .trade-status-active {
+    color: #22c55e;
+  }
+
+  .trade-status-arming,
+  .trade-status-stopping {
+    color: #fbbf24;
+  }
+
+  .trade-status-idle {
+    color: #94a3b8;
+  }
+
+  .trade-command-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .trade-primary-btn {
+    background: #f8fafc;
+    color: #0f172a;
+    padding: 0.9rem 1.6rem;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .trade-primary-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+  }
+
+  .trade-primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .trade-session {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 16px;
+    padding: 1rem;
+  }
+
+  .trade-session span {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.7);
+  }
+
+  .trade-session strong {
+    color: #f8fafc;
+    font-size: 0.95rem;
+  }
+
+  .trade-warning {
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: rgba(251, 191, 36, 0.9);
+  }
+
+  .trade-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .trade-log-row {
+    display: flex;
+    justify-content: space-between;
+    color: rgba(226, 232, 240, 0.8);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    padding-bottom: 0.6rem;
+  }
+
+  .trade-log-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .trade-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .trade-progress-bar {
+    height: 6px;
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .trade-progress-bar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+    border-radius: 999px;
+  }
+
+  .trade-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: rgba(148, 163, 184, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  @media (min-width: 1024px) {
+    .trade-top {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .trade-grid {
+      grid-template-columns: 2fr 1fr;
+    }
+  }
+
   .app-shell {
     background:
       radial-gradient(circle at 12% 10%, rgba(251, 191, 36, 0.12), transparent 45%),
