@@ -91,6 +91,8 @@ const WalletPage = () => {
 
   const telegramUser = getTelegramUser();
   const displayName = getTelegramDisplayName() || 'Runner';
+  const importHasEvm = !!importedWallet?.evm;
+  const importHasSol = !!importedWallet?.sol;
 
   const chains = [
     { id: 'eth', name: 'Ethereum', symbol: 'ETH' },
@@ -117,6 +119,13 @@ const WalletPage = () => {
     if (importChain === 'bsc') return ['BNB', 'USDT', 'USDC'];
     return ['SOL', 'USDT', 'USDC'];
   }, [importChain]);
+
+  const importChainOptions = useMemo(() => {
+    if (importHasEvm && importHasSol) return chains;
+    if (importHasEvm) return chains.filter((chain) => chain.id !== 'sol');
+    if (importHasSol) return chains.filter((chain) => chain.id === 'sol');
+    return chains;
+  }, [importHasEvm, importHasSol, chains]);
 
   useEffect(() => {
     if (!importAssetOptions.includes(importAsset)) {
@@ -205,6 +214,11 @@ const WalletPage = () => {
       setOnboardingStep('terms');
       return;
     }
+    if (walletMode === 'import' && !importedWallet) {
+      setShowOnboarding(true);
+      setOnboardingStep('import');
+      return;
+    }
     if (!walletMode) {
       setShowOnboarding(true);
       setOnboardingStep('choice');
@@ -212,7 +226,7 @@ const WalletPage = () => {
     }
     setShowOnboarding(false);
     setOnboardingStep('done');
-  }, [loading, effectiveAlias, termsAccepted, walletMode]);
+  }, [loading, effectiveAlias, termsAccepted, walletMode, importedWallet]);
 
   useEffect(() => {
     if (!importedWallet) return;
@@ -266,19 +280,24 @@ const WalletPage = () => {
   const allowAliasChange = status?.wallet_alias_change_enabled === true;
   const telegramUsername = (status?.telegram_username || telegramUser?.username || '').trim();
   const totalBalance = Number(botBalance || 0) + Number(vaultBalance || 0);
-  const importHasEvm = !!importedWallet?.evm;
-  const importHasSol = !!importedWallet?.sol;
   const vaultEntry = status?.vault_balances?.[vaultChain];
   const vaultAddress =
     vaultEntry?.address || status?.addresses?.[vaultChain]?.address || '-';
   const vaultChainBalance = Number(vaultEntry?.balance || 0);
   const vaultMeta = vaultOptions.find((opt) => opt.id === vaultChain);
-  const importSummary =
-    importedWallet && importBalances
-      ? `ETH ${importBalances.eth.native?.toFixed(4) || '0'} | BNB ${importBalances.bsc.native?.toFixed(4) || '0'} | SOL ${importBalances.sol.native?.toFixed(4) || '0'}`
-      : importedWallet
-        ? 'Loading import balances...'
-        : 'Import wallet to view balances';
+  const importSummary = (() => {
+    if (!importedWallet) return 'Import wallet to view balances';
+    if (!importBalances) return 'Loading import balances...';
+    const parts: string[] = [];
+    if (importHasEvm) {
+      parts.push(`ETH ${importBalances.eth.native?.toFixed(4) || '0'}`);
+      parts.push(`BNB ${importBalances.bsc.native?.toFixed(4) || '0'}`);
+    }
+    if (importHasSol) {
+      parts.push(`SOL ${importBalances.sol.native?.toFixed(4) || '0'}`);
+    }
+    return parts.join(' | ');
+  })();
 
   const handleSummarySelect = (mode: SummaryMode) => {
     if (mode === 'vault') {
@@ -470,10 +489,18 @@ const WalletPage = () => {
     }
     try {
       const res: any = await withTimeout(api.setWalletAlias(clean), 8000);
-      setStatus(prev => (prev ? { ...prev, wallet_alias: res.alias } : prev));
-      setAliasOverride('');
+      const savedAlias = res?.alias || optimisticAlias;
+      setStatus(prev => (prev ? { ...prev, wallet_alias: savedAlias } : prev));
+      if (!res?.pending) {
+        setAliasOverride('');
+      }
       await loadAll();
-      toast.success('Rogue ID locked in');
+      toast.success(res?.pending ? 'Rogue ID saved. Syncing...' : 'Rogue ID locked in');
+      if (res?.pending) {
+        setTimeout(() => {
+          loadAll().catch(() => null);
+        }, 1200);
+      }
     } catch (err: any) {
       setAliasOverride('');
       setStatus(prev => (prev ? { ...prev, wallet_alias: previousAlias || null } : prev));
@@ -501,7 +528,14 @@ const WalletPage = () => {
 
   const handleSelectMode = (mode: WalletMode) => {
     if (mode === 'import') {
+      try {
+        localStorage.setItem(MODE_KEY, 'import');
+      } catch {
+        // ignore
+      }
+      setWalletMode('import');
       setOnboardingStep('import');
+      setShowOnboarding(true);
       return;
     }
     try {
@@ -1037,36 +1071,42 @@ const WalletPage = () => {
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="wallet-panel">
-                    <div className="text-xs uppercase tracking-[0.25em] wallet-muted">Ethereum</div>
-                    <div className="mt-2 text-sm text-slate-900">
-                      {importBalances?.eth.native?.toFixed(4) || '0'} ETH
+                  {importHasEvm && (
+                    <>
+                      <div className="wallet-panel">
+                        <div className="text-xs uppercase tracking-[0.25em] wallet-muted">Ethereum</div>
+                        <div className="mt-2 text-sm text-slate-900">
+                          {importBalances?.eth.native?.toFixed(4) || '0'} ETH
+                        </div>
+                        <div className="text-xs wallet-muted mt-1">
+                          USDT: {importBalances?.eth.usdt?.toFixed(2) || '0'} | USDC:{' '}
+                          {importBalances?.eth.usdc?.toFixed(2) || '0'}
+                        </div>
+                      </div>
+                      <div className="wallet-panel">
+                        <div className="text-xs uppercase tracking-[0.25em] wallet-muted">BSC</div>
+                        <div className="mt-2 text-sm text-slate-900">
+                          {importBalances?.bsc.native?.toFixed(4) || '0'} BNB
+                        </div>
+                        <div className="text-xs wallet-muted mt-1">
+                          USDT: {importBalances?.bsc.usdt?.toFixed(2) || '0'} | USDC:{' '}
+                          {importBalances?.bsc.usdc?.toFixed(2) || '0'}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {importHasSol && (
+                    <div className="wallet-panel">
+                      <div className="text-xs uppercase tracking-[0.25em] wallet-muted">Solana</div>
+                      <div className="mt-2 text-sm text-slate-900">
+                        {importBalances?.sol.native?.toFixed(4) || '0'} SOL
+                      </div>
+                      <div className="text-xs wallet-muted mt-1">
+                        USDT: {importBalances?.sol.usdt?.toFixed(2) || '0'} | USDC:{' '}
+                        {importBalances?.sol.usdc?.toFixed(2) || '0'}
+                      </div>
                     </div>
-                    <div className="text-xs wallet-muted mt-1">
-                      USDT: {importBalances?.eth.usdt?.toFixed(2) || '0'} | USDC:{' '}
-                      {importBalances?.eth.usdc?.toFixed(2) || '0'}
-                    </div>
-                  </div>
-                  <div className="wallet-panel">
-                    <div className="text-xs uppercase tracking-[0.25em] wallet-muted">BSC</div>
-                    <div className="mt-2 text-sm text-slate-900">
-                      {importBalances?.bsc.native?.toFixed(4) || '0'} BNB
-                    </div>
-                    <div className="text-xs wallet-muted mt-1">
-                      USDT: {importBalances?.bsc.usdt?.toFixed(2) || '0'} | USDC:{' '}
-                      {importBalances?.bsc.usdc?.toFixed(2) || '0'}
-                    </div>
-                  </div>
-                  <div className="wallet-panel">
-                    <div className="text-xs uppercase tracking-[0.25em] wallet-muted">Solana</div>
-                    <div className="mt-2 text-sm text-slate-900">
-                      {importBalances?.sol.native?.toFixed(4) || '0'} SOL
-                    </div>
-                    <div className="text-xs wallet-muted mt-1">
-                      USDT: {importBalances?.sol.usdt?.toFixed(2) || '0'} | USDC:{' '}
-                      {importBalances?.sol.usdc?.toFixed(2) || '0'}
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {importError && (
@@ -1080,26 +1120,19 @@ const WalletPage = () => {
                   </div>
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="flex gap-2">
-                      {chains.map((chain) => {
-                        const isEvmChain = chain.id === 'eth' || chain.id === 'bsc';
-                        const disabled = isEvmChain ? !importHasEvm : !importHasSol;
-                        return (
-                          <button
-                            key={`import-${chain.id}`}
-                            onClick={() => {
-                              if (!disabled) setImportChain(chain.id as 'eth' | 'bsc' | 'sol');
-                            }}
-                            disabled={disabled}
-                            className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
-                              importChain === chain.id
-                                ? 'border-blue-500 bg-blue-600 text-white'
-                                : 'border-slate-200 bg-white text-slate-500'
-                            } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                          >
-                            {chain.symbol}
-                          </button>
-                        );
-                      })}
+                      {importChainOptions.map((chain) => (
+                        <button
+                          key={`import-${chain.id}`}
+                          onClick={() => setImportChain(chain.id as 'eth' | 'bsc' | 'sol')}
+                          className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
+                            importChain === chain.id
+                              ? 'border-blue-500 bg-blue-600 text-white'
+                              : 'border-slate-200 bg-white text-slate-500'
+                          }`}
+                        >
+                          {chain.symbol}
+                        </button>
+                      ))}
                     </div>
                     <div className="flex gap-2">
                       {importAssetOptions.map((asset) => (

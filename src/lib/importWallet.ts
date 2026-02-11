@@ -188,15 +188,18 @@ async function getEvmProvider(chain: 'eth' | 'bsc') {
 }
 
 async function getEvmTokenContracts(chain: 'eth' | 'bsc', walletAddress: string) {
-  const { Contract } = await getEthers();
+  const { Contract, getAddress } = await getEthers();
   const provider = await getEvmProvider(chain);
   const usdt = chain === 'eth' ? DEFAULT_EVM.eth.usdt : DEFAULT_EVM.bsc.usdt;
   const usdc = chain === 'eth' ? DEFAULT_EVM.eth.usdc : DEFAULT_EVM.bsc.usdc;
+  const normalizedAddress = getAddress(walletAddress);
+  const normalizedUsdt = getAddress(usdt);
+  const normalizedUsdc = getAddress(usdc);
   return {
     provider,
-    usdt: new Contract(usdt, ERC20_ABI, provider),
-    usdc: new Contract(usdc, ERC20_ABI, provider),
-    address: walletAddress
+    usdt: new Contract(normalizedUsdt, ERC20_ABI, provider),
+    usdc: new Contract(normalizedUsdc, ERC20_ABI, provider),
+    address: normalizedAddress
   };
 }
 
@@ -236,46 +239,62 @@ export async function getImportedBalances(wallet: ImportedWallet): Promise<Impor
 
   if (wallet.evm) {
     tasks.push((async () => {
-    const { formatEther, formatUnits } = await getEthers();
-    const [ethProvider, bscProvider] = await Promise.all([
-      getEvmProvider('eth'),
-      getEvmProvider('bsc')
-    ]);
-    const [ethBalanceRaw, bscBalanceRaw] = await Promise.all([
-      ethProvider.getBalance(wallet.evm.address),
-      bscProvider.getBalance(wallet.evm.address)
-    ]);
-    balances.eth.native = Number(formatEther(ethBalanceRaw));
-    balances.bsc.native = Number(formatEther(bscBalanceRaw));
+      const { formatEther, formatUnits, getAddress } = await getEthers();
+      let walletAddress = wallet.evm.address;
+      try {
+        walletAddress = getAddress(wallet.evm.address);
+      } catch {
+        return;
+      }
 
-    const [ethTokens, bscTokens] = await Promise.all([
-      getEvmTokenContracts('eth', wallet.evm.address),
-      getEvmTokenContracts('bsc', wallet.evm.address)
-    ]);
+      const [ethProvider, bscProvider] = await Promise.all([
+        getEvmProvider('eth'),
+        getEvmProvider('bsc')
+      ]);
 
-    const [
-      ethUsdtRaw,
-      ethUsdtDec,
-      ethUsdcRaw,
-      ethUsdcDec,
-      bscUsdtRaw,
-      bscUsdtDec,
-      bscUsdcRaw,
-      bscUsdcDec
-    ] = await Promise.all([
-      ethTokens.usdt.balanceOf(wallet.evm.address),
-      ethTokens.usdt.decimals(),
-      ethTokens.usdc.balanceOf(wallet.evm.address),
-      ethTokens.usdc.decimals(),
-      bscTokens.usdt.balanceOf(wallet.evm.address),
-      bscTokens.usdt.decimals(),
-      bscTokens.usdc.balanceOf(wallet.evm.address),
-      bscTokens.usdc.decimals()
-    ]);
-    balances.eth.usdt = Number(formatUnits(ethUsdtRaw, ethUsdtDec));
-    balances.eth.usdc = Number(formatUnits(ethUsdcRaw, ethUsdcDec));
-    balances.bsc.usdt = Number(formatUnits(bscUsdtRaw, bscUsdtDec));
-    balances.bsc.usdc = Number(formatUnits(bscUsdcRaw, bscUsdcDec));
+      try {
+        const ethBalanceRaw = await ethProvider.getBalance(walletAddress);
+        balances.eth.native = Number(formatEther(ethBalanceRaw));
+      } catch {
+        balances.eth.native = 0;
+      }
+
+      try {
+        const bscBalanceRaw = await bscProvider.getBalance(walletAddress);
+        balances.bsc.native = Number(formatEther(bscBalanceRaw));
+      } catch {
+        balances.bsc.native = 0;
+      }
+
+      try {
+        const ethTokens = await getEvmTokenContracts('eth', walletAddress);
+        const [ethUsdtRaw, ethUsdtDec, ethUsdcRaw, ethUsdcDec] = await Promise.all([
+          ethTokens.usdt.balanceOf(walletAddress),
+          ethTokens.usdt.decimals(),
+          ethTokens.usdc.balanceOf(walletAddress),
+          ethTokens.usdc.decimals()
+        ]);
+        balances.eth.usdt = Number(formatUnits(ethUsdtRaw, ethUsdtDec));
+        balances.eth.usdc = Number(formatUnits(ethUsdcRaw, ethUsdcDec));
+      } catch {
+        balances.eth.usdt = 0;
+        balances.eth.usdc = 0;
+      }
+
+      try {
+        const bscTokens = await getEvmTokenContracts('bsc', walletAddress);
+        const [bscUsdtRaw, bscUsdtDec, bscUsdcRaw, bscUsdcDec] = await Promise.all([
+          bscTokens.usdt.balanceOf(walletAddress),
+          bscTokens.usdt.decimals(),
+          bscTokens.usdc.balanceOf(walletAddress),
+          bscTokens.usdc.decimals()
+        ]);
+        balances.bsc.usdt = Number(formatUnits(bscUsdtRaw, bscUsdtDec));
+        balances.bsc.usdc = Number(formatUnits(bscUsdcRaw, bscUsdcDec));
+      } catch {
+        balances.bsc.usdt = 0;
+        balances.bsc.usdc = 0;
+      }
     })());
   }
 
@@ -328,12 +347,13 @@ export async function sendImportedTransaction(params: {
   if (amount <= 0) throw new Error('Invalid amount');
 
   if ((chain === 'eth' || chain === 'bsc') && wallet.evm) {
-    const { parseEther, parseUnits, Contract } = await getEthers();
+    const { parseEther, parseUnits, Contract, getAddress } = await getEthers();
     const provider = await getEvmProvider(chain);
     const evmWallet = wallet.evm.wallet.connect(provider);
 
     if (asset === 'ETH' || asset === 'BNB') {
-      const tx = await evmWallet.sendTransaction({ to, value: parseEther(String(amount)) });
+      const toAddress = getAddress(to);
+      const tx = await evmWallet.sendTransaction({ to: toAddress, value: parseEther(String(amount)) });
       return { txid: tx.hash };
     }
 
@@ -346,9 +366,10 @@ export async function sendImportedTransaction(params: {
           ? DEFAULT_EVM.eth.usdc
           : DEFAULT_EVM.bsc.usdc;
 
-    const contract = new Contract(tokenAddress, ERC20_ABI, evmWallet);
+    const toAddress = getAddress(to);
+    const contract = new Contract(getAddress(tokenAddress), ERC20_ABI, evmWallet);
     const decimals = await contract.decimals();
-    const tx = await contract.transfer(to, parseUnits(String(amount), decimals));
+    const tx = await contract.transfer(toAddress, parseUnits(String(amount), decimals));
     return { txid: tx.hash };
   }
 
