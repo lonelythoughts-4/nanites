@@ -174,7 +174,7 @@ const Trade = () => {
   if (loading) {
     return (
       <div className="min-h-screen trade-shell text-slate-100">
-        <Header variant="dark" />
+        <Header />
         <main className="trade-frame">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner size="lg" className="border-slate-600 border-t-sky-400" />
@@ -187,7 +187,7 @@ const Trade = () => {
   if (!dashboard || !cycleInfo || !tradeInfo) {
     return (
       <div className="min-h-screen trade-shell text-slate-100">
-        <Header variant="dark" />
+        <Header />
         <main className="trade-frame">
           <div className="trade-card text-center py-10">
             <div className="trade-label">Live data unavailable</div>
@@ -212,7 +212,7 @@ const Trade = () => {
 
   return (
     <div className="min-h-screen trade-shell text-slate-100">
-      <Header variant="dark" />
+      <Header />
 
       <main className="trade-frame">
         <section className="trade-top">
@@ -370,7 +370,7 @@ const Trade = () => {
         </section>
       </main>
 
-      <Footer variant="dark" />
+      <Footer />
     </div>
   );
 };

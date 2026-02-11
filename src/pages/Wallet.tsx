@@ -365,7 +365,7 @@ const WalletPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen wallet-shell">
-        <Header variant="light" />
+        <Header />
         <main className="wallet-container">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner size="lg" className="border-gray-300 border-t-blue-500" />
@@ -378,7 +378,7 @@ const WalletPage = () => {
   if (!status) {
     return (
       <div className="min-h-screen wallet-shell">
-        <Header variant="light" />
+        <Header />
         <main className="wallet-container">
           <div className="wallet-card text-center py-10">
             <div className="wallet-label">Wallet data unavailable</div>
@@ -710,7 +710,7 @@ const WalletPage = () => {
   const aliasDisplay = effectiveAlias;
   return (
     <div className="min-h-screen wallet-shell">
-      <Header variant="light" />
+      <Header />
 
       {vaultPickerOpen && !showOnboarding && (
         <div className="wallet-modal">
@@ -1679,7 +1679,7 @@ const WalletPage = () => {
         )}
       </main>
 
-      <Footer variant="light" />
+      <Footer />
     </div>
   );
 };

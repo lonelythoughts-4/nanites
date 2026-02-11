@@ -181,7 +181,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen dashboard-shell">
-        <Header variant="dark" />
+        <Header />
         <main className="dashboard-frame">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner size="lg" />
@@ -193,7 +193,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen dashboard-shell">
-      <Header variant="dark" />
+      <Header />
 
       <main className="dashboard-frame">
         {errors.length > 0 && (
@@ -479,7 +479,7 @@ const Dashboard = () => {
         )}
       </main>
 
-      <Footer variant="dark" />
+      <Footer />
     </div>
   );
 };
