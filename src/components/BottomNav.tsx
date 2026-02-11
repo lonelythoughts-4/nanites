@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowDownLeft, ArrowUpRight, LayoutDashboard, Users, Wallet, Zap } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, BookOpen, LayoutDashboard, Users, Wallet, Zap } from 'lucide-react';
 
 const BottomNav = () => {
   const location = useLocation();
@@ -13,7 +13,8 @@ const BottomNav = () => {
     { name: 'Wallet', href: '/wallet', icon: Wallet },
     { name: 'Deposit', href: '/deposit', icon: ArrowDownLeft },
     { name: 'Withdraw', href: '/withdraw', icon: ArrowUpRight },
-    { name: 'Referrals', href: '/referrals', icon: Users }
+    { name: 'Referrals', href: '/referrals', icon: Users },
+    { name: 'Tutorials', href: '/tutorials', icon: BookOpen }
   ];
 
   return (

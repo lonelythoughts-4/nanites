@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Bangers&family=Comic+Neue:wght@400;700&family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Bangers&family=Comic+Neue:wght@400;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap");
 
 
 @tailwind base;
@@ -957,24 +957,27 @@ All colors MUST be HSL.
 
 @layer components {
   .wallet-shell {
-    background: radial-gradient(circle at top, rgba(196, 210, 255, 0.45), transparent 55%),
-      linear-gradient(180deg, #f6f8ff 0%, #f3f6fb 100%);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.9), transparent 55%),
+      radial-gradient(circle at 80% 20%, rgba(212, 222, 255, 0.7), transparent 55%),
+      #e9ecff;
     min-height: 100vh;
     color: #1f2a44;
+    font-family: 'Poppins', 'Fredoka', 'Comic Neue', sans-serif;
   }
 
   .wallet-container {
-    max-width: 1120px;
+    max-width: 620px;
     margin: 0 auto;
-    padding: 2.5rem 1.5rem 4rem;
+    padding: 2.4rem 1.3rem 4rem;
   }
 
   .wallet-card {
     background: #ffffff;
-    border-radius: 26px;
-    border: 1px solid #e6ecf5;
-    box-shadow: 0 18px 32px rgba(30, 45, 80, 0.12);
-    padding: 1.5rem;
+    border-radius: 28px;
+    border: 1px solid #e3e8f4;
+    box-shadow: 0 18px 40px rgba(35, 51, 89, 0.12);
+    padding: 1.6rem;
   }
 
   .wallet-card-tight {
@@ -982,28 +985,28 @@ All colors MUST be HSL.
   }
 
   .wallet-panel {
-    background: #f7f9ff;
-    border: 1px solid #e1e7f2;
-    border-radius: 18px;
-    padding: 0.9rem;
+    background: #f6f7fb;
+    border: 1px solid #e2e7f2;
+    border-radius: 20px;
+    padding: 1rem;
   }
 
   .wallet-label {
-    font-size: 0.65rem;
-    letter-spacing: 0.35em;
+    font-size: 0.62rem;
+    letter-spacing: 0.32em;
     text-transform: uppercase;
     color: #6b7a99;
     font-weight: 600;
   }
 
   .wallet-metric {
-    font-size: 1.6rem;
+    font-size: 1.7rem;
     font-weight: 700;
     color: #1d2b4c;
   }
 
   .wallet-amount {
-    font-size: 2rem;
+    font-size: 2.1rem;
     font-weight: 700;
     color: #1d2b4c;
   }
@@ -1018,8 +1021,8 @@ All colors MUST be HSL.
     gap: 0.35rem;
     padding: 0.35rem 0.9rem;
     border-radius: 999px;
-    background: #edf1ff;
-    color: #1d4ed8;
+    background: #e8efff;
+    color: #2563eb;
     font-size: 0.62rem;
     letter-spacing: 0.25em;
     text-transform: uppercase;
@@ -1027,14 +1030,14 @@ All colors MUST be HSL.
   }
 
   .wallet-button {
-    background: linear-gradient(135deg, #1d5bff 0%, #0ba5ff 100%);
+    background: linear-gradient(135deg, #1d5bff 0%, #0ea5ff 100%);
     color: #ffffff;
     border-radius: 999px;
     padding: 0.75rem 1.6rem;
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    box-shadow: 0 16px 28px rgba(29, 91, 255, 0.3);
+    box-shadow: 0 16px 28px rgba(29, 91, 255, 0.28);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
@@ -1044,7 +1047,7 @@ All colors MUST be HSL.
   }
 
   .wallet-button-secondary {
-    background: #eef3ff;
+    background: #eef2ff;
     color: #1d4ed8;
     border-radius: 999px;
     padding: 0.6rem 1.2rem;
@@ -1054,10 +1057,10 @@ All colors MUST be HSL.
   }
 
   .wallet-input {
-    background: #f7f9ff;
-    border: 1px solid #e1e7f2;
-    border-radius: 14px;
-    padding: 0.75rem 0.9rem;
+    background: #f3f6fb;
+    border: 1px solid #d8dfef;
+    border-radius: 18px;
+    padding: 0.8rem 1rem;
     color: #1f2a44;
     font-weight: 600;
   }
@@ -1082,6 +1085,8 @@ All colors MUST be HSL.
     align-items: center;
     padding: 0.55rem 0.6rem;
     padding-bottom: calc(0.65rem + env(safe-area-inset-bottom));
+    gap: 0.35rem;
+    overflow-x: auto;
   }
 
   .bottom-nav-dark {
@@ -1101,7 +1106,7 @@ All colors MUST be HSL.
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     font-weight: 600;

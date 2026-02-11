@@ -39,6 +39,8 @@ type WalletMode = 'native' | 'import' | '';
 
 type ImportAsset = 'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC';
 
+type SummaryMode = 'wallet' | 'vault' | 'import';
+
 const MIN_PUSH = 20;
 const DEPOSIT_FEE_PERCENT = 0.1;
 const TERMS_KEY = 'rogue_wallet_terms_accepted';
@@ -82,6 +84,7 @@ const WalletPage = () => {
   const [importSendAmount, setImportSendAmount] = useState('');
   const [importSending, setImportSending] = useState(false);
   const [importTx, setImportTx] = useState<string | null>(null);
+  const [summaryMode, setSummaryMode] = useState<SummaryMode>('wallet');
 
   const telegramUser = getTelegramUser();
   const displayName = getTelegramDisplayName() || 'Runner';
@@ -253,6 +256,7 @@ const WalletPage = () => {
   const unlockCycle = status?.earliest_unlock_cycle;
   const allowAliasChange = status?.wallet_alias_change_enabled === true;
   const telegramUsername = (status?.telegram_username || telegramUser?.username || '').trim();
+  const totalBalance = Number(botBalance || 0) + Number(vaultBalance || 0);
   const importHasEvm = !!importedWallet?.evm;
   const importHasSol = !!importedWallet?.sol;
 
@@ -266,6 +270,12 @@ const WalletPage = () => {
       setImportChain('eth');
     }
   }, [importedWallet, importHasEvm, importHasSol, importChain]);
+
+  useEffect(() => {
+    if (walletMode === 'import') {
+      setSummaryMode('import');
+    }
+  }, [walletMode]);
 
   const numericAmount = Number(amount || 0);
   const feeAmount = useMemo(() => {
@@ -527,6 +537,18 @@ const WalletPage = () => {
   };
 
   const aliasDisplay = effectiveAlias;
+  const summaryLabel =
+    summaryMode === 'vault'
+      ? 'Vault Address'
+      : summaryMode === 'import'
+        ? 'Imported Address'
+        : 'Rogue ID';
+  const summaryValue =
+    summaryMode === 'vault'
+      ? status?.addresses?.eth?.address || status?.addresses?.bsc?.address || status?.addresses?.sol?.address || '-'
+      : summaryMode === 'import'
+        ? importedWallet?.evm?.address || importedWallet?.sol?.address || '-'
+        : aliasDisplay || '-';
   return (
     <div className="min-h-screen wallet-shell">
       <Header variant="light" />
@@ -712,26 +734,83 @@ const WalletPage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="wallet-card wallet-card-tight">
-            <div className="wallet-label">Bot Balance</div>
-            <div className="wallet-metric mt-2">${botBalance.toLocaleString()}</div>
+        <div className="wallet-card mb-8">
+          <div className="wallet-label">Payment Data</div>
+          <div className="wallet-amount mt-2">${totalBalance.toLocaleString()}</div>
+          <div className="wallet-muted text-xs mt-1">Total balance (Bot + Vault)</div>
+
+          <div className="wallet-panel mt-4">
+            <div className="wallet-label">Payment Method</div>
+            <div className="mt-2 flex gap-2">
+              {(['wallet', 'vault', 'import'] as SummaryMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSummaryMode(mode)}
+                  className={`flex-1 rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.25em] ${
+                    summaryMode === mode
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-slate-500 border border-slate-200'
+                  }`}
+                >
+                  {mode === 'wallet' ? 'Wallet' : mode === 'vault' ? 'Vault' : 'Import'}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="wallet-card wallet-card-tight">
-            <div className="wallet-label">Vault Balance</div>
-            <div className="wallet-metric mt-2">${vaultBalance.toLocaleString()}</div>
-          </div>
-          <div className="wallet-card wallet-card-tight">
-            <div className="wallet-label">Transfer Fee</div>
-            <div className="wallet-metric mt-2">{feePercent}%</div>
-          </div>
-          <div className="wallet-card wallet-card-tight">
-            <div className="wallet-label">Locked Funds</div>
-            <div className="wallet-metric mt-2">${Number(lockedAmount).toLocaleString()}</div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3">
+            <div>
+              <label className="wallet-label">{summaryLabel}</label>
+              <input className="wallet-input w-full text-sm mt-2" value={summaryValue} readOnly />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="wallet-label">Available</label>
+                <input
+                  className="wallet-input w-full text-sm mt-2"
+                  value={`$${Number(botBalance || 0).toLocaleString()}`}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="wallet-label">Vault</label>
+                <input
+                  className="wallet-input w-full text-sm mt-2"
+                  value={`$${Number(vaultBalance || 0).toLocaleString()}`}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="wallet-label">Transfer Fee</label>
+                <input className="wallet-input w-full text-sm mt-2" value={`${feePercent}%`} readOnly />
+              </div>
+              <div>
+                <label className="wallet-label">Locked Funds</label>
+                <input
+                  className="wallet-input w-full text-sm mt-2"
+                  value={`$${Number(lockedAmount).toLocaleString()}`}
+                  readOnly
+                />
+              </div>
+            </div>
             {lockedAmount > 0 && (
-              <div className="text-xs wallet-muted mt-2">Unlocks after Cycle {unlockCycle || '-'}</div>
+              <div className="text-xs wallet-muted">
+                Locked funds release after Cycle {unlockCycle || '-'}.
+              </div>
             )}
           </div>
+
+          <button
+            className="wallet-button w-full mt-5 text-sm"
+            onClick={() => {
+              const target = document.getElementById('wallet-send');
+              if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            Proceed to confirm
+          </button>
         </div>
 
         {walletMode === 'import' && (
@@ -1061,7 +1140,7 @@ const WalletPage = () => {
               </div>
             </div>
           </div>
-          <div className="wallet-card">
+          <div className="wallet-card" id="wallet-send">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Send to Rogue ID</h2>
               <Send className="h-4 w-4 text-blue-500" />
