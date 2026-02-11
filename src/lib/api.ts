@@ -219,6 +219,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ chain, amount })
     }),
+  walletVaultSend: (payload: {
+    chain: string;
+    asset: string;
+    amount: number;
+    recipient_address: string;
+  }) =>
+    apiFetch('/api/wallet/vault/send', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
   scanWalletDeposits: (chain?: string) =>
     apiFetch('/api/wallet/deposit/scan', {
       method: 'POST',

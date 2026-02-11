@@ -41,6 +41,7 @@ type WalletMode = 'native' | 'import' | '';
 type ImportAsset = 'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC';
 
 type SummaryMode = 'wallet' | 'vault' | 'import';
+type VaultSendMode = 'external' | 'import';
 
 const MIN_PUSH = 20;
 const DEPOSIT_FEE_PERCENT = 0.1;
@@ -88,11 +89,19 @@ const WalletPage = () => {
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('wallet');
   const [vaultChain, setVaultChain] = useState<'eth' | 'bsc' | 'sol'>('eth');
   const [vaultPickerOpen, setVaultPickerOpen] = useState(false);
+  const [vaultSendOpen, setVaultSendOpen] = useState(false);
+  const [vaultSendMode, setVaultSendMode] = useState<VaultSendMode>('external');
+  const [vaultSendAmount, setVaultSendAmount] = useState('');
+  const [vaultSendRecipient, setVaultSendRecipient] = useState('');
+  const [vaultSendAsset, setVaultSendAsset] = useState<ImportAsset>('ETH');
+  const [vaultSending, setVaultSending] = useState(false);
 
   const telegramUser = getTelegramUser();
   const displayName = getTelegramDisplayName() || 'Runner';
   const importHasEvm = !!importedWallet?.evm;
   const importHasSol = !!importedWallet?.sol;
+  const importVaultAddress = vaultChain === 'sol' ? importedWallet?.sol?.address : importedWallet?.evm?.address;
+  const importVaultAvailable = !!importVaultAddress;
 
   const chains = [
     { id: 'eth', name: 'Ethereum', symbol: 'ETH' },
@@ -120,6 +129,12 @@ const WalletPage = () => {
     return ['SOL', 'USDT', 'USDC'];
   }, [importChain]);
 
+  const vaultAssetOptions = useMemo<ImportAsset[]>(() => {
+    if (vaultChain === 'eth') return ['ETH', 'USDT', 'USDC'];
+    if (vaultChain === 'bsc') return ['BNB', 'USDT', 'USDC'];
+    return ['SOL', 'USDT', 'USDC'];
+  }, [vaultChain]);
+
   const importChainOptions = useMemo(() => {
     if (importHasEvm && importHasSol) return chains;
     if (importHasEvm) return chains.filter((chain) => chain.id !== 'sol');
@@ -132,6 +147,12 @@ const WalletPage = () => {
       setImportAsset(importAssetOptions[0]);
     }
   }, [importAssetOptions, importAsset]);
+
+  useEffect(() => {
+    if (!vaultAssetOptions.includes(vaultSendAsset)) {
+      setVaultSendAsset(vaultAssetOptions[0]);
+    }
+  }, [vaultAssetOptions, vaultSendAsset]);
 
   const getExplorerTxUrl = (chain: 'eth' | 'bsc' | 'sol', txid: string) => {
     if (!txid) return '';
@@ -279,12 +300,21 @@ const WalletPage = () => {
   const unlockCycle = status?.earliest_unlock_cycle;
   const allowAliasChange = status?.wallet_alias_change_enabled === true;
   const telegramUsername = (status?.telegram_username || telegramUser?.username || '').trim();
-  const totalBalance = Number(botBalance || 0) + Number(vaultBalance || 0);
   const vaultEntry = status?.vault_balances?.[vaultChain];
   const vaultAddress =
     vaultEntry?.address || status?.addresses?.[vaultChain]?.address || '-';
   const vaultChainBalance = Number(vaultEntry?.balance || 0);
   const vaultMeta = vaultOptions.find((opt) => opt.id === vaultChain);
+  const summaryAmount = summaryMode === 'wallet'
+    ? botBalance
+    : summaryMode === 'vault'
+      ? vaultChainBalance
+      : null;
+  const summaryLabel = summaryMode === 'wallet'
+    ? 'Wallet balance'
+    : summaryMode === 'vault'
+      ? `Vault balance (${vaultMeta?.symbol || vaultChain.toUpperCase()})`
+      : 'Imported balances';
   const importSummary = (() => {
     if (!importedWallet) return 'Import wallet to view balances';
     if (!importBalances) return 'Loading import balances...';
@@ -298,6 +328,11 @@ const WalletPage = () => {
     }
     return parts.join(' | ');
   })();
+  const importSummaryDisplay = importedWallet ? importSummary : 'Import wallet to view';
+  const summaryDisplayText =
+    summaryMode === 'import'
+      ? importSummaryDisplay
+      : `$${Number(summaryAmount || 0).toLocaleString()}`;
 
   const handleSummarySelect = (mode: SummaryMode) => {
     if (mode === 'vault') {
@@ -441,6 +476,40 @@ const WalletPage = () => {
       toast.error(err?.message || 'Push failed');
     } finally {
       setPushing(false);
+    }
+  };
+
+  const handleVaultSend = async () => {
+    const amountNumber = Number(vaultSendAmount || 0);
+    const destination =
+      vaultSendMode === 'import' ? (importVaultAddress || '') : vaultSendRecipient.trim();
+
+    if (!destination) {
+      toast.error(vaultSendMode === 'import' ? 'Import a wallet first' : 'Enter a recipient address');
+      return;
+    }
+    if (!amountNumber || amountNumber <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+
+    setVaultSending(true);
+    try {
+      await api.walletVaultSend({
+        chain: vaultChain,
+        asset: vaultSendAsset,
+        amount: amountNumber,
+        recipient_address: destination
+      });
+      toast.success('Vault transfer sent');
+      setVaultSendAmount('');
+      setVaultSendRecipient('');
+      setVaultSendOpen(false);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err?.message || 'Vault transfer failed');
+    } finally {
+      setVaultSending(false);
     }
   };
 
@@ -677,6 +746,145 @@ const WalletPage = () => {
         </div>
       )}
 
+      {vaultSendOpen && !showOnboarding && (
+        <div className="wallet-modal">
+          <div className="wallet-modal-card">
+            <div className="wallet-label">Send from Vault</div>
+            <div className="mt-2 text-sm text-slate-700">
+              {vaultMeta?.name || 'Vault'} • {vaultMeta?.symbol}
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button
+                className="wallet-button-secondary text-[10px]"
+                onClick={() => {
+                  setVaultSendOpen(false);
+                  setVaultPickerOpen(true);
+                }}
+              >
+                Change vault
+              </button>
+            </div>
+
+            <div className="wallet-panel mt-4">
+              <div className="wallet-label">Destination</div>
+              <div className="mt-2 flex gap-2">
+                {(['external', 'import'] as VaultSendMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setVaultSendMode(mode)}
+                    className={`flex-1 rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.25em] ${
+                      vaultSendMode === mode
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    {mode === 'external' ? 'External' : 'Imported'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {vaultSendMode === 'import' && !importVaultAvailable && (
+              <div className="wallet-panel mt-4 text-xs wallet-muted">
+                No imported wallet found for this chain. Import a wallet first.
+                <button
+                  onClick={() => {
+                    setVaultSendOpen(false);
+                    setOnboardingStep('import');
+                    setShowOnboarding(true);
+                  }}
+                  className="mt-3 wallet-button text-xs"
+                >
+                  Import Wallet
+                </button>
+              </div>
+            )}
+
+            {vaultSendMode === 'external' && (
+              <div className="mt-4">
+                <label className="wallet-label">Recipient Address</label>
+                <input
+                  value={vaultSendRecipient}
+                  onChange={(e) => setVaultSendRecipient(e.target.value)}
+                  className="wallet-input w-full text-sm mt-2"
+                  placeholder="Destination address"
+                />
+              </div>
+            )}
+
+            {vaultSendMode === 'import' && importVaultAvailable && (
+              <div className="mt-4">
+                <label className="wallet-label">Imported Wallet</label>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    className="wallet-input w-full text-sm"
+                    value={importVaultAddress || ''}
+                    readOnly
+                  />
+                  <button
+                    onClick={() => handleCopy(importVaultAddress || '')}
+                    className="wallet-button-secondary text-[10px]"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4">
+              <label className="wallet-label">Asset</label>
+              <div className="mt-2 flex gap-2">
+                {vaultAssetOptions.map((asset) => (
+                  <button
+                    key={asset}
+                    onClick={() => setVaultSendAsset(asset)}
+                    className={`flex-1 rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.25em] ${
+                      vaultSendAsset === asset
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    {asset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="wallet-label">Amount</label>
+              <input
+                value={vaultSendAmount}
+                onChange={(e) => setVaultSendAmount(e.target.value)}
+                className="wallet-input w-full text-sm mt-2"
+                placeholder="Enter amount"
+              />
+              <div className="text-xs wallet-muted mt-2">
+                Vault available: ${vaultChainBalance.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                onClick={handleVaultSend}
+                disabled={
+                  vaultSending ||
+                  (vaultSendMode === 'import' && !importVaultAvailable)
+                }
+                className="wallet-button text-sm disabled:opacity-50"
+              >
+                {vaultSending ? 'Sending...' : 'Send'}
+              </button>
+              <button
+                className="wallet-button-secondary text-[10px]"
+                onClick={() => setVaultSendOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showOnboarding && (
         <div className="matrix-screen">
           <div className="matrix-rain" />
@@ -860,8 +1068,8 @@ const WalletPage = () => {
 
         <div className="wallet-card mb-8">
           <div className="wallet-label">Payment Data</div>
-          <div className="wallet-amount mt-2">${totalBalance.toLocaleString()}</div>
-          <div className="wallet-muted text-xs mt-1">Total balance (Bot + Vault)</div>
+          <div className="wallet-amount mt-2">{summaryDisplayText}</div>
+          <div className="wallet-muted text-xs mt-1">{summaryLabel}</div>
 
           <div className="wallet-panel mt-4">
             <div className="wallet-label">Payment Method</div>
@@ -1298,6 +1506,23 @@ const WalletPage = () => {
 
               <div className="mt-6 wallet-panel">
                 <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900">Send from Vault</h3>
+                  <Send className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-xs wallet-muted mt-2">
+                  Send funds to an external address or your imported wallet on this chain.
+                </p>
+                <button
+                  onClick={() => setVaultSendOpen(true)}
+                  disabled={!enabled}
+                  className="mt-4 wallet-button text-sm disabled:opacity-50"
+                >
+                  Send Out
+                </button>
+              </div>
+
+              <div className="mt-6 wallet-panel">
+                <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-slate-900">Vault Activity</h3>
                   <ShieldCheck className="h-4 w-4 text-blue-500" />
                 </div>
@@ -1307,9 +1532,18 @@ const WalletPage = () => {
                     <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b wallet-divider pb-2">
                       <div>
                         <div className="text-slate-900">
-                          {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)}
+                          {tx.type === 'wallet_push'
+                            ? 'Pushed to Engine'
+                            : tx.type === 'wallet_vault_send'
+                              ? 'Sent from Vault'
+                              : 'Vault Deposit'} ${Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)}
                         </div>
                         <div className="text-xs wallet-muted">{tx.chain ? tx.chain.toUpperCase() : '-'}</div>
+                        {tx.type === 'wallet_vault_send' && tx.meta?.to && (
+                          <div className="text-xs wallet-muted">
+                            To: {String(tx.meta.to).slice(0, 12)}...
+                          </div>
+                        )}
                       </div>
                       <div className="text-xs wallet-muted mt-1 sm:mt-0">
                         {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
