@@ -16,6 +16,11 @@ type ApiError = {
   message?: string;
 };
 
+type ApiFetchOptions = RequestInit & {
+  timeoutMs?: number;
+  skipCache?: boolean;
+};
+
 async function parseErrorResponse(res: Response): Promise<string> {
   try {
     const data = (await res.json()) as ApiError;
@@ -30,14 +35,17 @@ async function parseErrorResponse(res: Response): Promise<string> {
   }
 }
 
-function readStorageCache(key: string): { ts: number; data: unknown } | null {
+function readStorageCache(
+  key: string,
+  allowExpired = false
+): { ts: number; data: unknown } | null {
   try {
     if (typeof sessionStorage === 'undefined') return null;
     const raw = sessionStorage.getItem(`${STORAGE_PREFIX}${key}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { ts?: number; data?: unknown };
     if (!parsed || typeof parsed.ts !== 'number') return null;
-    if (Date.now() - parsed.ts > STORAGE_TTL_MS) return null;
+    if (!allowExpired && Date.now() - parsed.ts > STORAGE_TTL_MS) return null;
     return { ts: parsed.ts, data: parsed.data };
   } catch {
     return null;
@@ -55,10 +63,11 @@ function writeStorageCache(key: string, data: unknown): void {
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: ApiFetchOptions = {}
 ): Promise<T> {
-  const method = (options.method || 'GET').toUpperCase();
-  const isCacheable = method === 'GET' && !options.body;
+  const { timeoutMs = 20000, skipCache = false, ...fetchOptions } = options;
+  const method = (fetchOptions.method || 'GET').toUpperCase();
+  const isCacheable = method === 'GET' && !fetchOptions.body && !skipCache;
   const cacheKey = `${method}:${API_BASE_URL}${path}`;
   const now = Date.now();
 
@@ -79,9 +88,10 @@ export async function apiFetch<T>(
   }
 
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-  const controller = options.signal ? null : new AbortController();
+  const controller =
+    fetchOptions.signal || timeoutMs <= 0 ? null : new AbortController();
   if (controller) {
-    timeoutHandle = setTimeout(() => controller.abort(), 12000);
+    timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
   }
 
   const initData = getInitData();
@@ -119,8 +129,8 @@ export async function apiFetch<T>(
 
   const doFetch = async (): Promise<T> => {
     const res = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      signal: options.signal || controller?.signal,
+      ...fetchOptions,
+      signal: fetchOptions.signal || controller?.signal,
       headers
     });
 
@@ -146,12 +156,25 @@ export async function apiFetch<T>(
     return data;
   };
 
-  const requestPromise = isCacheable ? doFetch() : doFetch();
+  const requestPromise = doFetch();
   if (isCacheable) {
     inflightRequests.set(cacheKey, requestPromise);
   }
   try {
     return await requestPromise;
+  } catch (err: any) {
+    const message = err?.message || '';
+    const isAbort =
+      err?.name === 'AbortError' || message.toLowerCase().includes('aborted');
+    if (isAbort) {
+      const stale = isCacheable ? readStorageCache(cacheKey, true) : null;
+      if (stale) {
+        responseCache.set(cacheKey, stale);
+        return stale.data as T;
+      }
+      throw new Error('Request timed out. Please retry.');
+    }
+    throw err;
   } finally {
     if (isCacheable) {
       inflightRequests.delete(cacheKey);

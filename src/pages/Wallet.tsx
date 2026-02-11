@@ -284,7 +284,7 @@ const WalletPage = () => {
     return (
       <div className="min-h-screen wallet-shell">
         <Header variant="light" />
-        <main className="wallet-frame">
+        <main className="wallet-container">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner size="lg" className="border-gray-300 border-t-blue-500" />
           </div>
@@ -297,7 +297,7 @@ const WalletPage = () => {
     return (
       <div className="min-h-screen wallet-shell">
         <Header variant="light" />
-        <main className="wallet-frame">
+        <main className="wallet-container">
           <div className="wallet-card text-center py-10">
             <div className="wallet-label">Wallet data unavailable</div>
             <p className="wallet-muted mt-2">We could not load your wallet data yet.</p>
