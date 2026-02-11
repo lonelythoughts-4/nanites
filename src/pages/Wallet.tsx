@@ -4,6 +4,7 @@ import { ArrowUpRight, Copy, RefreshCw, Send, ShieldCheck, Terminal, UserCircle,
 import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { api } from '../lib/api';
 import { getTelegramDisplayName, getTelegramUser } from '../lib/telegram';
 import {
@@ -278,6 +279,45 @@ const WalletPage = () => {
   }, [walletMode]);
 
   const numericAmount = Number(amount || 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen wallet-shell">
+        <Header variant="light" />
+        <main className="wallet-frame">
+          <div className="flex items-center justify-center h-64">
+            <LoadingSpinner size="lg" className="border-gray-300 border-t-blue-500" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!status) {
+    return (
+      <div className="min-h-screen wallet-shell">
+        <Header variant="light" />
+        <main className="wallet-frame">
+          <div className="wallet-card text-center py-10">
+            <div className="wallet-label">Wallet data unavailable</div>
+            <p className="wallet-muted mt-2">We could not load your wallet data yet.</p>
+            <button
+              type="button"
+              className="wallet-button mt-6"
+              onClick={() => {
+                setLoading(true);
+                loadAll()
+                  .catch(() => null)
+                  .finally(() => setLoading(false));
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
   const feeAmount = useMemo(() => {
     if (!numericAmount || !Number.isFinite(numericAmount)) return 0;
     return Number((numericAmount * (feePercent / 100)).toFixed(2));

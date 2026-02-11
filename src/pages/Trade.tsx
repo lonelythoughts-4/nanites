@@ -3,6 +3,7 @@ import { Activity, BadgeCheck, Gauge, ShieldCheck, Timer } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { api } from '../lib/api';
 
 type TradeStatus = 'idle' | 'arming' | 'active' | 'stopping';
@@ -169,6 +170,45 @@ const Trade = () => {
     const secs = seconds % 60;
     return `${mins}m ${secs.toString().padStart(2, '0')}s`;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen trade-shell text-slate-100">
+        <Header variant="dark" />
+        <main className="trade-frame">
+          <div className="flex items-center justify-center h-64">
+            <LoadingSpinner size="lg" className="border-slate-600 border-t-sky-400" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!dashboard || !cycleInfo || !tradeInfo) {
+    return (
+      <div className="min-h-screen trade-shell text-slate-100">
+        <Header variant="dark" />
+        <main className="trade-frame">
+          <div className="trade-card text-center py-10">
+            <div className="trade-label">Live data unavailable</div>
+            <p className="trade-muted mt-2">We could not load your trading data yet.</p>
+            <button
+              type="button"
+              className="trade-primary-btn mt-6"
+              onClick={() => {
+                setLoading(true);
+                refreshAll()
+                  .catch(() => null)
+                  .finally(() => setLoading(false));
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen trade-shell text-slate-100">
