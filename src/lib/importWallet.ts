@@ -71,6 +71,24 @@ async function withTimeout<T>(promise: Promise<T>, ms: number) {
   }
 }
 
+async function firstSuccess<T>(promises: Promise<T>[]) {
+  let rejected = 0;
+  let lastError: any = null;
+  return await new Promise<T>((resolve, reject) => {
+    promises.forEach((promise) => {
+      promise
+        .then(resolve)
+        .catch((err) => {
+          rejected += 1;
+          lastError = err;
+          if (rejected >= promises.length) {
+            reject(lastError || new Error('All RPCs failed'));
+          }
+        });
+    });
+  });
+}
+
 async function getEthers() {
   return await import('ethers');
 }
@@ -159,7 +177,7 @@ async function getEvmProvider(chain: 'eth' | 'bsc') {
   });
 
   try {
-    const provider = await Promise.any(attempts);
+    const provider = await firstSuccess(attempts);
     providerCache.set(cacheKey, { ts: Date.now(), provider });
     return provider;
   } catch {
@@ -197,7 +215,7 @@ async function getSolConnection() {
   });
 
   try {
-    const connection = await Promise.any(attempts);
+    const connection = await firstSuccess(attempts);
     providerCache.set(cacheKey, { ts: Date.now(), provider: connection });
     return connection;
   } catch {

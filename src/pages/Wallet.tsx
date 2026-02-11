@@ -520,8 +520,8 @@ const WalletPage = () => {
 
   const aliasDisplay = effectiveAlias;
   return (
-    <div className="min-h-screen app-shell text-slate-100">
-      <Header />
+    <div className="min-h-screen wallet-shell">
+      <Header variant="light" />
 
       {showOnboarding && (
         <div className="matrix-screen">
@@ -659,20 +659,20 @@ const WalletPage = () => {
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="wallet-container">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-100">Rogue Wallet</h1>
-            <p className="text-slate-400 text-sm">
+            <h1 className="text-3xl font-bold text-slate-900">Rogue Wallet</h1>
+            <p className="wallet-muted text-sm">
               On-chain vault plus internal transfers, fully synced with Rogue Engine.
             </p>
             {aliasDisplay && (
-              <div className="mt-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+              <div className="mt-2 wallet-label">
                 Rogue ID: {aliasDisplay}
               </div>
             )}
             {walletMode && (
-              <div className="mt-2 text-xs uppercase tracking-[0.3em] text-slate-400">
+              <div className="mt-2 text-xs uppercase tracking-[0.3em] wallet-muted">
                 Wallet Mode: {walletMode === 'import' ? 'Imported' : 'Rogue Wallet'}
               </div>
             )}
@@ -683,7 +683,7 @@ const WalletPage = () => {
                   setOnboardingStep('alias');
                   setShowOnboarding(true);
                 }}
-                className="mt-2 text-xs uppercase tracking-[0.3em] text-amber-200 hover:text-amber-100"
+                className="mt-2 text-xs uppercase tracking-[0.3em] text-blue-600 hover:text-blue-500"
               >
                 Change Rogue ID
               </button>
@@ -691,49 +691,50 @@ const WalletPage = () => {
           </div>
           <button
             onClick={loadAll}
-            className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-black/40 px-4 py-2 text-xs uppercase tracking-[0.3em] text-amber-200 hover:border-amber-300"
+            className="inline-flex items-center gap-2 wallet-button-secondary text-xs"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
           </button>
         </div>
         {!enabled && (
-          <div className="mb-6 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4 text-amber-200 text-sm">
-            Wallet feature is currently disabled by admin.
+          <div className="mb-6 wallet-panel text-sm">
+            <span className="wallet-pill">Disabled</span>
+            <span className="ml-3 wallet-muted">Wallet feature is currently disabled by admin.</span>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-5 shadow">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Bot Balance</div>
-            <div className="text-2xl font-bold text-slate-100 mt-2">${botBalance.toLocaleString()}</div>
+          <div className="wallet-card wallet-card-tight">
+            <div className="wallet-label">Bot Balance</div>
+            <div className="wallet-metric mt-2">${botBalance.toLocaleString()}</div>
           </div>
-          <div className="bg-white rounded-2xl p-5 shadow">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Vault Balance</div>
-            <div className="text-2xl font-bold text-emerald-200 mt-2">${vaultBalance.toLocaleString()}</div>
+          <div className="wallet-card wallet-card-tight">
+            <div className="wallet-label">Vault Balance</div>
+            <div className="wallet-metric mt-2">${vaultBalance.toLocaleString()}</div>
           </div>
-          <div className="bg-white rounded-2xl p-5 shadow">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Transfer Fee</div>
-            <div className="text-2xl font-bold text-amber-200 mt-2">{feePercent}%</div>
+          <div className="wallet-card wallet-card-tight">
+            <div className="wallet-label">Transfer Fee</div>
+            <div className="wallet-metric mt-2">{feePercent}%</div>
           </div>
-          <div className="bg-white rounded-2xl p-5 shadow">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Locked Funds</div>
-            <div className="text-2xl font-bold text-rose-200 mt-2">${Number(lockedAmount).toLocaleString()}</div>
+          <div className="wallet-card wallet-card-tight">
+            <div className="wallet-label">Locked Funds</div>
+            <div className="wallet-metric mt-2">${Number(lockedAmount).toLocaleString()}</div>
             {lockedAmount > 0 && (
-              <div className="text-xs text-slate-400 mt-2">Unlocks after Cycle {unlockCycle || '-'}</div>
+              <div className="text-xs wallet-muted mt-2">Unlocks after Cycle {unlockCycle || '-'}</div>
             )}
           </div>
         </div>
 
         {walletMode === 'import' && (
-          <div className="bg-white rounded-2xl p-6 shadow mb-8">
+          <div className="wallet-card mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-100">Imported Wallet</h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleRefreshImported}
                   disabled={!importedWallet || importRefreshing}
-                  className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-amber-200 hover:border-amber-300 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 wallet-button-secondary text-[10px] disabled:opacity-50"
                 >
                   <RefreshCw className="h-3 w-3" />
                   {importRefreshing ? 'Refreshing' : 'Refresh'}
@@ -741,7 +742,7 @@ const WalletPage = () => {
               </div>
             </div>
             {!importedWallet ? (
-              <div className="rounded-2xl border border-amber-400/30 bg-black/40 p-4 text-slate-300">
+              <div className="wallet-panel text-slate-700">
                 <div className="text-sm text-slate-100">Imported wallet not loaded</div>
                 <div className="text-xs text-slate-400 mt-1">
                   Re-import your seed phrase or private key to load balances and send transactions.
@@ -759,7 +760,7 @@ const WalletPage = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                  <div className="wallet-panel">
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
                       <span>EVM Address</span>
                       <button
@@ -774,7 +775,7 @@ const WalletPage = () => {
                       {importedWallet?.evm?.address || 'Not available'}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                  <div className="wallet-panel">
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
                       <span>Solana Address</span>
                       <button
@@ -792,7 +793,7 @@ const WalletPage = () => {
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                  <div className="wallet-panel">
                     <div className="text-xs uppercase tracking-[0.25em] text-slate-400">Ethereum</div>
                     <div className="mt-2 text-sm text-emerald-200">
                       {importBalances?.eth.native?.toFixed(4) || '0'} ETH
@@ -802,7 +803,7 @@ const WalletPage = () => {
                       {importBalances?.eth.usdc?.toFixed(2) || '0'}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                  <div className="wallet-panel">
                     <div className="text-xs uppercase tracking-[0.25em] text-slate-400">BSC</div>
                     <div className="mt-2 text-sm text-emerald-200">
                       {importBalances?.bsc.native?.toFixed(4) || '0'} BNB
@@ -812,7 +813,7 @@ const WalletPage = () => {
                       {importBalances?.bsc.usdc?.toFixed(2) || '0'}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                  <div className="wallet-panel">
                     <div className="text-xs uppercase tracking-[0.25em] text-slate-400">Solana</div>
                     <div className="mt-2 text-sm text-emerald-200">
                       {importBalances?.sol.native?.toFixed(4) || '0'} SOL
@@ -828,7 +829,7 @@ const WalletPage = () => {
                   <div className="mt-3 text-xs text-rose-200">{importError}</div>
                 )}
 
-                <div className="mt-6 rounded-2xl border border-amber-400/30 bg-black/40 p-4">
+                <div className="mt-6 wallet-panel">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-amber-200">Send from Imported Wallet</h3>
                     <Send className="h-4 w-4 text-amber-200" />
@@ -874,19 +875,19 @@ const WalletPage = () => {
                     <input
                       value={importRecipient}
                       onChange={(e) => setImportRecipient(e.target.value)}
-                      className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                      className="wallet-input w-full text-sm"
                       placeholder="Recipient address"
                     />
                     <input
                       value={importSendAmount}
                       onChange={(e) => setImportSendAmount(e.target.value)}
-                      className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                      className="wallet-input w-full text-sm"
                       placeholder="Amount"
                     />
                     <button
                       onClick={handleSendImported}
                       disabled={importSending}
-                      className="rounded-xl bg-amber-500/90 text-black py-2 text-sm font-semibold uppercase tracking-widest hover:bg-amber-400 disabled:opacity-50"
+                    className="wallet-button text-sm disabled:opacity-50"
                     >
                       {importSending ? 'Sending...' : 'Send'}
                     </button>
@@ -910,14 +911,14 @@ const WalletPage = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-6 shadow mb-8">
+        <div className="wallet-card mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-100">Wallet Assets</h2>
             <ShieldCheck className="h-4 w-4 text-emerald-300" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {tokenList.map((token) => (
-              <div key={token.symbol} className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+              <div key={token.symbol} className="wallet-panel">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-slate-100">{token.symbol}</div>
                   <span className="text-xs text-slate-400">{token.chain}</span>
@@ -939,7 +940,7 @@ const WalletPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow lg:col-span-2">
+          <div className="wallet-card lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-100">Wallet Vault (On-chain)</h2>
               <Terminal className="h-4 w-4 text-emerald-300" />
@@ -954,7 +955,7 @@ const WalletPage = () => {
                 const address = vaultEntry?.address || status?.addresses?.[chain]?.address || '-';
                 const chainBalance = vaultEntry?.balance ?? 0;
                 return (
-                  <div key={chain} className="rounded-xl border border-slate-800/60 bg-black/40 p-3">
+                  <div key={chain} className="wallet-panel">
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-400">
                       <span>{chain.toUpperCase()}</span>
                       <button onClick={() => handleCopy(address)} className="inline-flex items-center gap-1 text-amber-200 hover:text-amber-100">
@@ -973,7 +974,7 @@ const WalletPage = () => {
               <button
                 onClick={handleScan}
                 disabled={!enabled || scanning}
-                className="inline-flex items-center justify-center rounded-xl border border-emerald-400/30 bg-black/40 py-2 px-4 text-xs uppercase tracking-[0.3em] text-emerald-200 hover:border-emerald-300 disabled:opacity-50"
+                className="inline-flex items-center justify-center wallet-button-secondary text-xs disabled:opacity-50"
               >
                 {scanning ? 'Scanning...' : 'Scan Vault'}
               </button>
@@ -988,19 +989,19 @@ const WalletPage = () => {
               )}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-amber-400/30 bg-black/40 p-4">
+            <div className="mt-6 wallet-panel">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-amber-200">Push to Rogue Engine</h3>
-                <ArrowUpRight className="h-4 w-4 text-amber-200" />
+                <h3 className="text-sm font-semibold text-slate-900">Push to Rogue Engine</h3>
+                <ArrowUpRight className="h-4 w-4 text-blue-600" />
               </div>
-              <p className="text-xs text-slate-400 mt-2">
+              <p className="text-xs wallet-muted mt-2">
                 Move vault funds into your bot balance to trade. 10% engine fee applies.
               </p>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   value={pushAmount}
                   onChange={(e) => setPushAmount(e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                  className="wallet-input w-full text-sm"
                   placeholder={`Amount (min $${MIN_PUSH})`}
                 />
                 <div className="flex gap-2">
@@ -1010,8 +1011,8 @@ const WalletPage = () => {
                       onClick={() => setPushChain(chain.id)}
                       className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
                         pushChain === chain.id
-                          ? 'border-amber-400 text-amber-200 bg-black/60'
-                          : 'border-slate-700 text-slate-400 bg-black/30'
+                          ? 'border-blue-500 bg-blue-600 text-white'
+                          : 'border-slate-200 bg-white text-slate-500'
                       }`}
                     >
                       {chain.symbol}
@@ -1021,30 +1022,30 @@ const WalletPage = () => {
                 <button
                   onClick={handlePush}
                   disabled={!enabled || pushing}
-                  className="rounded-xl bg-amber-500/90 text-black py-2 text-sm font-semibold uppercase tracking-widest hover:bg-amber-400 disabled:opacity-50"
+                  className="wallet-button text-sm disabled:opacity-50"
                 >
                   {pushing ? 'Moving...' : 'Push'}
                 </button>
               </div>
-              <div className="mt-2 text-xs text-slate-400">Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}</div>
+              <div className="mt-2 text-xs wallet-muted">Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}</div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-slate-800/60 bg-black/40 p-4">
+            <div className="mt-6 wallet-panel">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-100">Vault Activity</h3>
-                <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                <h3 className="text-sm font-semibold text-slate-900">Vault Activity</h3>
+                <ShieldCheck className="h-4 w-4 text-blue-500" />
               </div>
-              <div className="mt-3 space-y-2 text-xs text-slate-300">
-                {vaultActivity.length === 0 && <div className="text-slate-500">No vault activity yet.</div>}
+              <div className="mt-3 space-y-2 text-xs wallet-muted">
+                {vaultActivity.length === 0 && <div className="wallet-muted">No vault activity yet.</div>}
                 {vaultActivity.map((tx) => (
-                  <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b border-slate-800/60 pb-2">
+                  <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b wallet-divider pb-2">
                     <div>
-                      <div className="text-slate-100">
+                      <div className="text-slate-900">
                         {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)}
                       </div>
-                      <div className="text-xs text-slate-500">{tx.chain ? tx.chain.toUpperCase() : '-'}</div>
+                      <div className="text-xs wallet-muted">{tx.chain ? tx.chain.toUpperCase() : '-'}</div>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1 sm:mt-0">
+                    <div className="text-xs wallet-muted mt-1 sm:mt-0">
                       {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
                     </div>
                   </div>
@@ -1052,53 +1053,53 @@ const WalletPage = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl p-6 shadow">
+          <div className="wallet-card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-100">Send to Rogue ID</h2>
-              <Send className="h-4 w-4 text-amber-200" />
+              <h2 className="text-lg font-semibold text-slate-900">Send to Rogue ID</h2>
+              <Send className="h-4 w-4 text-blue-500" />
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">
+                <label className="block text-xs uppercase tracking-[0.25em] wallet-muted mb-2">
                   Recipient Rogue ID
                 </label>
                 <input
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                  className="wallet-input w-full text-sm"
                   placeholder="Rogue ID"
                   disabled={!enabled || sending}
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">
+                <label className="block text-xs uppercase tracking-[0.25em] wallet-muted mb-2">
                   Amount
                 </label>
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100"
+                  className="wallet-input w-full text-sm"
                   placeholder="0.00"
                   disabled={!enabled || sending}
                 />
-              <div className="mt-2 text-xs text-slate-400">Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}</div>
-              <div className="mt-1 text-xs text-slate-500">Max per transfer: ${transferLimit.toLocaleString()}</div>
+              <div className="mt-2 text-xs wallet-muted">Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}</div>
+              <div className="mt-1 text-xs wallet-muted">Max per transfer: ${transferLimit.toLocaleString()}</div>
             </div>
               <button
                 onClick={handleSend}
                 disabled={!enabled || sending}
-                className="w-full rounded-xl bg-amber-500/90 text-black py-2 text-sm font-semibold uppercase tracking-widest hover:bg-amber-400 disabled:opacity-50"
+                className="wallet-button w-full text-sm disabled:opacity-50"
               >
                 {sending ? 'Sending...' : 'Send'}
               </button>
-              <div className="rounded-xl border border-slate-800/60 bg-black/40 p-3 text-xs text-slate-400">
+              <div className="wallet-panel text-xs wallet-muted">
                 Transfers lock for two cycles before withdrawal. Tier changes apply instantly.
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow mb-8">
+        <div className="wallet-card mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-100">Transfer History</h2>
           </div>
@@ -1123,7 +1124,7 @@ const WalletPage = () => {
         </div>
 
         {isAdmin && (
-          <div className="bg-white rounded-2xl p-6 shadow">
+          <div className="wallet-card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-100">Admin Wallet Settings</h2>
               <ShieldCheck className="h-4 w-4 text-emerald-300" />
@@ -1135,11 +1136,11 @@ const WalletPage = () => {
               </label>
               <div>
                 <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">Fee %</label>
-                <input value={adminFee} onChange={(e) => setAdminFee(e.target.value)} className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100" />
+                <input value={adminFee} onChange={(e) => setAdminFee(e.target.value)} className="wallet-input w-full text-sm" />
               </div>
               <div>
                 <label className="block text-xs uppercase tracking-[0.25em] text-slate-400 mb-2">Transfer Limit</label>
-                <input value={adminLimit} onChange={(e) => setAdminLimit(e.target.value)} className="w-full rounded-xl bg-black/40 border border-slate-700 px-3 py-2 text-sm text-slate-100" />
+                <input value={adminLimit} onChange={(e) => setAdminLimit(e.target.value)} className="wallet-input w-full text-sm" />
               </div>
             </div>
             <label className="mt-4 flex items-center gap-2 text-sm text-slate-300">
@@ -1153,7 +1154,7 @@ const WalletPage = () => {
             <button
               onClick={handleSaveSettings}
               disabled={savingAdmin}
-              className="mt-4 rounded-xl bg-amber-500/90 text-black py-2 px-6 text-sm font-semibold uppercase tracking-widest hover:bg-amber-400 disabled:opacity-50"
+              className="mt-4 wallet-button text-sm disabled:opacity-50"
             >
               {savingAdmin ? 'Saving...' : 'Save Settings'}
             </button>
@@ -1161,7 +1162,7 @@ const WalletPage = () => {
         )}
       </main>
 
-      <Footer />
+      <Footer variant="light" />
     </div>
   );
 };

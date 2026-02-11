@@ -954,3 +954,115 @@ All colors MUST be HSL.
     50% { opacity: 0; }
   }
 }
+
+@layer components {
+  .wallet-shell {
+    background: radial-gradient(circle at top, rgba(196, 210, 255, 0.45), transparent 55%),
+      linear-gradient(180deg, #f6f8ff 0%, #f3f6fb 100%);
+    min-height: 100vh;
+    color: #1f2a44;
+  }
+
+  .wallet-container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  .wallet-card {
+    background: #ffffff;
+    border-radius: 26px;
+    border: 1px solid #e6ecf5;
+    box-shadow: 0 18px 32px rgba(30, 45, 80, 0.12);
+    padding: 1.5rem;
+  }
+
+  .wallet-card-tight {
+    padding: 1.2rem;
+  }
+
+  .wallet-panel {
+    background: #f7f9ff;
+    border: 1px solid #e1e7f2;
+    border-radius: 18px;
+    padding: 0.9rem;
+  }
+
+  .wallet-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #6b7a99;
+    font-weight: 600;
+  }
+
+  .wallet-metric {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1d2b4c;
+  }
+
+  .wallet-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1d2b4c;
+  }
+
+  .wallet-muted {
+    color: #7a8aa6;
+  }
+
+  .wallet-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: #edf1ff;
+    color: #1d4ed8;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .wallet-button {
+    background: linear-gradient(135deg, #1d5bff 0%, #0ba5ff 100%);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 0.75rem 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    box-shadow: 0 16px 28px rgba(29, 91, 255, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .wallet-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(29, 91, 255, 0.35);
+  }
+
+  .wallet-button-secondary {
+    background: #eef3ff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .wallet-input {
+    background: #f7f9ff;
+    border: 1px solid #e1e7f2;
+    border-radius: 14px;
+    padding: 0.75rem 0.9rem;
+    color: #1f2a44;
+    font-weight: 600;
+  }
+
+  .wallet-divider {
+    border-color: #e6ecf5;
+  }
+}
