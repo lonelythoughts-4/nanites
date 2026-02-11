@@ -180,9 +180,9 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen dashboard-shell">
+        <Header variant="dark" />
+        <main className="dashboard-frame">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner size="lg" />
           </div>
@@ -192,13 +192,13 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <div className="min-h-screen dashboard-shell">
+      <Header variant="dark" />
 
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="dashboard-frame">
         {errors.length > 0 && (
           <div className="mb-6 space-y-3">
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+            <div className="dashboard-alert">
               <div className="font-semibold mb-1">Some data failed to load</div>
               <ul className="list-disc list-inside">
                 {errors.map((err, idx) => (
@@ -210,98 +210,178 @@ const Dashboard = () => {
           </div>
         )}
 
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Welcome back, {userFirstName}
-              </h1>
-              <p className="mt-2 text-gray-600">
-                Track your trading performance and manage your account
-              </p>
-            </div>
-            <div className="mt-4 sm:mt-0">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`}
-                />
-                Refresh
-              </button>
-            </div>
+        <div className="dashboard-hero">
+          <div>
+            <div className="dashboard-kicker">Account Overview</div>
+            <h1 className="dashboard-title">Welcome back, {userFirstName}</h1>
+            <p className="dashboard-subtitle">
+              Professional overview of your cycle, balances, and recent activity.
+            </p>
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="dashboard-refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Wallet className="h-8 w-8 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Balance</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ${totalBalance.toLocaleString()}
-                </p>
-              </div>
+        <section className="dashboard-kpis">
+          <div className="dashboard-card">
+            <div className="dashboard-card-title">
+              <Wallet className="h-4 w-4" />
+              <span>Total Balance</span>
             </div>
+            <div className="dashboard-card-value">${totalBalance.toLocaleString()}</div>
+            <div className="dashboard-card-sub">All balances combined</div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <TrendingUp className="h-8 w-8 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Frozen Profit</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ${frozenProfit.toLocaleString()}
-                </p>
-              </div>
+          <div className="dashboard-card">
+            <div className="dashboard-card-title">
+              <TrendingUp className="h-4 w-4" />
+              <span>Frozen Profit</span>
             </div>
+            <div className="dashboard-card-value">${frozenProfit.toLocaleString()}</div>
+            <div className="dashboard-card-sub">Locked until cycle completes</div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Users className="h-8 w-8 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Referrals</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {referralCount}
-                </p>
-              </div>
+          <div className="dashboard-card">
+            <div className="dashboard-card-title">
+              <Users className="h-4 w-4" />
+              <span>Referrals</span>
             </div>
+            <div className="dashboard-card-value">{referralCount}</div>
+            <div className="dashboard-card-sub">Active referrals</div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Clock className="h-8 w-8 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Cycle Days Left</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {daysRemaining}
-                </p>
-              </div>
+          <div className="dashboard-card">
+            <div className="dashboard-card-title">
+              <Clock className="h-4 w-4" />
+              <span>Cycle Days Left</span>
             </div>
+            <div className="dashboard-card-value">{daysRemaining}</div>
+            <div className="dashboard-card-sub">Day {cycleDay} of {TOTAL_CYCLE_DAYS}</div>
           </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Trading Cycle Status
+        <section className="dashboard-grid">
+          <div className="dashboard-card dashboard-card-large">
+            <div className="dashboard-card-header">
+              <div>
+                <div className="dashboard-label">Trading Cycle Status</div>
+                <h2 className="dashboard-section-title">
+                  Day {cycleDay} of {TOTAL_CYCLE_DAYS}
                 </h2>
+                <p className="dashboard-muted">
+                  {formatDate(cycleInfo?.cycle_start)} - {formatDate(cycleInfo?.cycle_end)}
+                </p>
               </div>
-              <div className="p-6">
+              <TierBadge tier={tierKey} />
+            </div>
+
+            {canContinue && (
+              <div className="dashboard-callout">
+                <div>
+                  Cycle complete. Profit ready: ${cycleProfit.toLocaleString()}
+                </div>
+                <div className="dashboard-callout-actions">
+                  <button
+                    onClick={() => setShowContinueModal(true)}
+                    disabled={continuing}
+                    className="dashboard-primary-btn"
+                  >
+                    {continuing ? 'Continuing...' : 'Continue Cycle'}
+                  </button>
+                  <Link to="/withdraw" className="dashboard-secondary-btn">
+                    Withdraw Profit
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            <div className="dashboard-progress">
+              <div className="dashboard-progress-meta">
+                <span>Progress</span>
+                <span>{Math.round(cycleProgress)}%</span>
+              </div>
+              <div className="dashboard-progress-bar">
+                <span style={{ width: `${Math.min(100, Math.max(0, cycleProgress))}%` }} />
+              </div>
+            </div>
+
+            <div className="dashboard-balance-grid">
+              <div>
+                <span>Available Balance</span>
+                <strong>${availableBalance.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span>Total Balance</span>
+                <strong>${totalBalance.toLocaleString()}</strong>
+              </div>
+            </div>
+
+            <div className="dashboard-actions">
+              <Link to="/deposit" className="dashboard-primary-btn">
+                Make Deposit
+              </Link>
+              <Link to="/withdraw" className="dashboard-secondary-btn">
+                Request Withdrawal
+              </Link>
+            </div>
+          </div>
+
+          <div className="dashboard-side">
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
+                <h2 className="dashboard-section-title">Tier Information</h2>
+              </div>
+              <div className="dashboard-tier">
+                <TierBadge tier={tierKey} className="text-lg px-4 py-2" />
+                <div>
+                  <div className="dashboard-row">
+                    <span>Deposit Range</span>
+                    <strong>{tierRange}</strong>
+                  </div>
+                  <div className="dashboard-row">
+                    <span>14-Day Return</span>
+                    <strong>{tierInfo?.return_percent ?? '-'}%</strong>
+                  </div>
+                  <div className="dashboard-row">
+                    <span>Daily Return</span>
+                    <strong>{tierInfo?.daily_profit_percent ?? '-'}%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
+                <h2 className="dashboard-section-title">Referral Program</h2>
+              </div>
+              <div className="dashboard-referral">
+                <label>Your Referral Link</label>
+                <div className="dashboard-referral-link">
+                  <div>{referralLink}</div>
+                  <button onClick={handleCopyReferral} className="dashboard-copy-btn">
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="dashboard-referral-stats">
+                  <div>
+                    <span>Total Clicks</span>
+                    <strong>{referrals?.total_clicks ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span>Earnings</span>
+                    <strong>${referrals?.total_earnings ?? 0}</strong>
+                  </div>
+                </div>
+                <Link to="/referrals" className="dashboard-primary-btn">
+                  View Details
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
                 {canContinue && (
                   <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
                     <div className="text-sm text-amber-800 font-medium">
@@ -458,86 +538,40 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="mt-8">
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                <Link
-                  to="/transactions"
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  View All
-                </Link>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Chain
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {recentTransactions.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-6 text-center text-sm text-gray-500"
-                      >
-                        No transactions yet.
-                      </td>
-                    </tr>
-                  )}
-                  {recentTransactions.map((transaction: any, idx: number) => (
-                    <tr key={`${transaction.type}-${transaction.created_at}-${idx}`}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {getTransactionIcon(transaction.type)}
-                          <span className="ml-2 text-sm font-medium text-gray-900 capitalize">
-                            {transaction.type}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${Number(transaction.amount || 0).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {(transaction.chain || '-').toUpperCase()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                            transaction.status
-                          )}`}
-                        >
-                          {transaction.status || 'pending'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(transaction.created_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <section className="dashboard-card dashboard-table">
+          <div className="dashboard-card-header">
+            <h2 className="dashboard-section-title">Recent Transactions</h2>
+            <Link to="/transactions" className="dashboard-link">
+              View All
+            </Link>
           </div>
-        </div>
+          <div className="dashboard-table-body">
+            <div className="dashboard-table-row dashboard-table-head">
+              <span>Type</span>
+              <span>Amount</span>
+              <span>Chain</span>
+              <span>Status</span>
+              <span>Date</span>
+            </div>
+            {recentTransactions.length === 0 && (
+              <div className="dashboard-table-empty">No transactions yet.</div>
+            )}
+            {recentTransactions.map((transaction: any, idx: number) => (
+              <div key={`${transaction.type}-${transaction.created_at}-${idx}`} className="dashboard-table-row">
+                <span className="dashboard-table-type">
+                  {getTransactionIcon(transaction.type)}
+                  {transaction.type}
+                </span>
+                <span>${Number(transaction.amount || 0).toLocaleString()}</span>
+                <span>{(transaction.chain || '-').toUpperCase()}</span>
+                <span className={`dashboard-status ${getStatusColor(transaction.status)}`}>
+                  {transaction.status || 'pending'}
+                </span>
+                <span>{formatDate(transaction.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {showContinueModal && canContinue && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -600,7 +634,7 @@ const Dashboard = () => {
         )}
       </main>
 
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 };
