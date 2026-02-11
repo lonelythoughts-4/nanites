@@ -318,10 +318,10 @@ const WalletPage = () => {
       </div>
     );
   }
-  const feeAmount = useMemo(() => {
-    if (!numericAmount || !Number.isFinite(numericAmount)) return 0;
-    return Number((numericAmount * (feePercent / 100)).toFixed(2));
-  }, [numericAmount, feePercent]);
+  const feeAmount =
+    numericAmount && Number.isFinite(numericAmount)
+      ? Number((numericAmount * (feePercent / 100)).toFixed(2))
+      : 0;
   const netAmount = Math.max(0, Number((numericAmount - feeAmount).toFixed(2)));
 
   const pushAmountNumber = Number(pushAmount || 0);
