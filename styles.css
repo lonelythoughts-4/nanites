@@ -955,7 +955,7 @@ All colors MUST be HSL.
   }
 
   .app-shell.theme-light .text-gray-900 {
-    color: #1f2937;
+    color: #b45309;
   }
 
   .app-shell.theme-light .text-gray-700 {
@@ -1010,7 +1010,7 @@ All colors MUST be HSL.
   .app-shell.theme-light .dashboard-title,
   .app-shell.theme-light .dashboard-section-title,
   .app-shell.theme-light .dashboard-card-value {
-    color: #1f2937;
+    color: #b45309;
   }
 
   .app-shell.theme-light .dashboard-kicker,
@@ -1070,7 +1070,7 @@ All colors MUST be HSL.
 
   .app-shell.theme-light .trade-title,
   .app-shell.theme-light .trade-meta strong {
-    color: #1f2937;
+    color: #b45309;
   }
 
   .app-shell.theme-light .trade-meta {
@@ -1089,7 +1089,7 @@ All colors MUST be HSL.
   }
 
   .app-shell.theme-light .trade-card-value {
-    color: #1f2937;
+    color: #b45309;
   }
 
   .app-shell.theme-light .trade-card-sub {
@@ -1103,7 +1103,16 @@ All colors MUST be HSL.
   }
 
   .app-shell.theme-light .trade-log-title {
-    color: #1f2937;
+    color: #b45309;
+  }
+
+  .app-shell.theme-light .text-slate-900 {
+    color: #b45309;
+  }
+
+  .app-shell.theme-light .wallet-amount,
+  .app-shell.theme-light .wallet-metric {
+    color: #b45309;
   }
 
   .app-shell.theme-light .trade-log-pill {
