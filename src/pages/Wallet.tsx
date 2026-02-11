@@ -107,9 +107,9 @@ const WalletPage = () => {
   ];
 
   const vaultOptions = [
-    { id: 'eth' as const, name: 'Ethereum', symbol: 'ETH' },
-    { id: 'bsc' as const, name: 'BNB Smart Chain', symbol: 'BNB' },
-    { id: 'sol' as const, name: 'Solana', symbol: 'SOL' }
+    { id: 'eth' as const, name: 'Ethereum', symbol: 'ETH', logo: '/assets/eth.svg' },
+    { id: 'bsc' as const, name: 'BNB Smart Chain', symbol: 'BNB', logo: '/assets/bnb.svg' },
+    { id: 'sol' as const, name: 'Solana', symbol: 'SOL', logo: '/assets/sol.svg' }
   ];
 
   const importAssetOptions = useMemo<ImportAsset[]>(() => {
@@ -627,7 +627,7 @@ const WalletPage = () => {
                   }}
                 >
                   <div className={`wallet-chain-icon ${option.id}`}>
-                    {option.symbol}
+                    <img src={option.logo} alt={`${option.name} logo`} />
                   </div>
                   <div className="wallet-chain-name">{option.name}</div>
                 </button>

@@ -1416,23 +1416,21 @@ All colors MUST be HSL.
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    color: #ffffff;
+    background: #ffffff;
+    border: 1px solid #e2e7f2;
+    box-shadow: 0 8px 16px rgba(30, 64, 175, 0.08);
   }
 
   .wallet-chain-icon.eth {
-    background: radial-gradient(circle at 30% 30%, #93c5fd 0%, #1e3a8a 70%);
+    background: #eef2ff;
   }
 
   .wallet-chain-icon.bsc {
-    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #f59e0b 75%);
-    color: #3f2a00;
+    background: #fff7e6;
   }
 
   .wallet-chain-icon.sol {
-    background: linear-gradient(135deg, #14f195 0%, #9945ff 100%);
+    background: #f1f5ff;
   }
 
   .wallet-chain-name {
@@ -1440,6 +1438,12 @@ All colors MUST be HSL.
     text-transform: uppercase;
     letter-spacing: 0.2em;
     color: #5b6b85;
+  }
+
+  .wallet-chain-icon img {
+    width: 60%;
+    height: 60%;
+    object-fit: contain;
   }
 
   .bottom-nav {
