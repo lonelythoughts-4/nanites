@@ -75,7 +75,7 @@ import React, { useState } from 'react';
             return (
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Getting Started - 5 Steps</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">Getting Started - 5 Steps</h2>
                   <p className="text-gray-600 mb-6">
                     Follow these simple steps to start your automated trading journey with RougeRunner GENESYS.
                   </p>
@@ -109,12 +109,12 @@ import React, { useState } from 'react';
                       description: "When a 14-day cycle completes, profits are added automatically based on your tier. Check your Dashboard for updated balance and tier progression."
                     }
                   ].map((item) => (
-                    <div key={item.step} className="flex items-start space-x-4 p-6 bg-gray-50 rounded-lg">
+                    <div key={item.step} className="flex items-start space-x-4 p-5 bg-gray-50 rounded-lg">
                       <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                         {item.step}
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
+                        <h3 className="text-base font-semibold text-gray-900 mb-2">{item.title}</h3>
                         <p className="text-gray-600">{item.description}</p>
                       </div>
                     </div>
@@ -127,7 +127,7 @@ import React, { useState } from 'react';
             return (
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">How the Tier System Works</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">How the Tier System Works</h2>
                   <p className="text-gray-600 mb-6">
                     Your tier is automatically determined by your account balance. Higher tiers offer better multipliers and returns over the 14-day cycle period.
                   </p>
@@ -135,9 +135,9 @@ import React, { useState } from 'react';
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {tiers.map((tier) => (
-                    <div key={tier.tier} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div key={tier.tier} className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
                       <div className="text-center mb-4">
-                        <TierBadge tier={tier.tier} className="text-base px-4 py-2" />
+                        <TierBadge tier={tier.tier} className="text-xs px-3 py-1.5" />
                       </div>
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
@@ -157,8 +157,8 @@ import React, { useState } from 'react';
                   ))}
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-3">How Tier Upgrades Work</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                  <h3 className="text-base font-semibold text-blue-900 mb-3">How Tier Upgrades Work</h3>
                   <ul className="space-y-2 text-blue-800">
                     <li>• Tiers are calculated automatically based on your total account balance</li>
                     <li>• Upgrades happen immediately when you reach the next tier threshold</li>
@@ -173,7 +173,7 @@ import React, { useState } from 'react';
             return (
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Deposit Methods</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">Deposit Methods</h2>
                   <p className="text-gray-600 mb-6">
                     We support multiple blockchain networks for deposits. Choose the one that works best for you.
                   </p>
@@ -210,8 +210,8 @@ import React, { useState } from 'react';
                       color: 'red'
                     }
                   ].map((chain) => (
-                    <div key={chain.name} className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">{chain.name}</h3>
+                    <div key={chain.name} className="bg-white border border-gray-200 rounded-lg p-5">
+                      <h3 className="text-base font-semibold text-gray-900 mb-3">{chain.name}</h3>
                       <div className="space-y-2 text-sm mb-4">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Confirmation Time:</span>
@@ -227,8 +227,8 @@ import React, { useState } from 'react';
                   ))}
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-yellow-900 mb-3">⚠️ Important Deposit Guidelines</h3>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-5">
+                  <h3 className="text-base font-semibold text-yellow-900 mb-3">⚠️ Important Deposit Guidelines</h3>
                   <ul className="space-y-2 text-yellow-800">
                     <li>• Only send the specified cryptocurrency to each address</li>
                     <li>• Double-check the address before sending funds</li>
@@ -244,7 +244,7 @@ import React, { useState } from 'react';
             return (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">Frequently Asked Questions</h2>
                   <p className="text-gray-600 mb-6">
                     Find answers to common questions about RougeRunner GENESYS.
                   </p>
@@ -259,9 +259,9 @@ import React, { useState } from 'react';
                       >
                         <span className="font-medium text-gray-900">{faq.question}</span>
                         {expandedFaq === index ? (
-                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
                         ) : (
-                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                          <ChevronRight className="h-4 w-4 text-gray-500" />
                         )}
                       </button>
                       {expandedFaq === index && (
@@ -279,14 +279,14 @@ import React, { useState } from 'react';
             return (
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Risk Disclaimer</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">Risk Disclaimer</h2>
                   <p className="text-gray-600 mb-6">
                     Please read and understand these important risk factors before using RougeRunner GENESYS.
                   </p>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-red-900 mb-4">⚠️ Important Risk Warnings</h3>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-5">
+                  <h3 className="text-base font-semibold text-red-900 mb-4">⚠️ Important Risk Warnings</h3>
                   <div className="space-y-4 text-red-800">
                     <p>
                       <strong>Trading Risk:</strong> All trading activities carry inherent risk. Past performance 
@@ -307,8 +307,8 @@ import React, { useState } from 'react';
                   </div>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Responsible Trading Guidelines</h3>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+                  <h3 className="text-base font-semibold text-gray-900 mb-4">Responsible Trading Guidelines</h3>
                   <ul className="space-y-2 text-gray-700">
                     <li>• Only deposit funds you can afford to lose completely</li>
                     <li>• Start with small amounts to understand the platform</li>
@@ -319,8 +319,8 @@ import React, { useState } from 'react';
                   </ul>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4">Platform Disclaimers</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                  <h3 className="text-base font-semibold text-blue-900 mb-4">Platform Disclaimers</h3>
                   <div className="space-y-3 text-blue-800 text-sm">
                     <p>
                       RougeRunner GENESYS provides automated trading simulation services. Results shown 
@@ -345,12 +345,12 @@ import React, { useState } from 'react';
       };
 
       return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 text-sm">
           <Header />
           
           <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Tutorials & Help</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Tutorials & Help</h1>
               <p className="mt-2 text-gray-600">
                 Learn how to use RougeRunner GENESYS effectively and safely
               </p>
@@ -366,13 +366,13 @@ import React, { useState } from 'react';
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
-                        className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
+                        className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors text-xs ${
                           activeSection === section.id
                             ? 'bg-blue-100 text-blue-700 border border-blue-200'
                             : 'text-gray-600 hover:bg-gray-100'
                         }`}
                       >
-                        <Icon className="h-5 w-5 mr-3" />
+                        <Icon className="h-4 w-4 mr-3" />
                         {section.title}
                       </button>
                     );
@@ -382,7 +382,7 @@ import React, { useState } from 'react';
 
               {/* Main Content */}
               <div className="lg:col-span-3">
-                <div className="bg-white rounded-lg shadow-lg p-8">
+                <div className="bg-white rounded-lg shadow-lg p-6">
                   {renderContent()}
                 </div>
               </div>
