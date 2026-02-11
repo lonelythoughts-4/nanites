@@ -1015,6 +1015,13 @@ const WalletPage = () => {
                 <button className="matrix-button" onClick={handleImport} disabled={importLoading}>
                   {importLoading ? 'Importing...' : 'Import Wallet'}
                 </button>
+                <button
+                  className="matrix-button ghost mt-3"
+                  onClick={() => handleSelectMode('native')}
+                  disabled={importLoading}
+                >
+                  Use Rogue Wallet Instead
+                </button>
               </div>
             )}
           </div>
