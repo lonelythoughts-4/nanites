@@ -2,6 +2,19 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './styles.css';
+import { Buffer } from 'buffer';
+import process from 'process';
+
+// Polyfills for wallet import dependencies (bip39, ed25519-hd-key)
+if (typeof window !== 'undefined') {
+  const w = window as any;
+  if (!w.Buffer) {
+    w.Buffer = Buffer;
+  }
+  if (!w.process) {
+    w.process = process;
+  }
+}
 
 // Send logs to parent frame (like a preview system)
 function postToParent(level: string, ...args: any[]): void {
