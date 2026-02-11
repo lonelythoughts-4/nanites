@@ -1361,6 +1361,87 @@ All colors MUST be HSL.
     border-color: #e6ecf5;
   }
 
+  .wallet-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: rgba(8, 12, 24, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .wallet-modal-card {
+    background: #ffffff;
+    border-radius: 24px;
+    border: 1px solid #e3e8f4;
+    box-shadow: 0 24px 60px rgba(25, 38, 70, 0.25);
+    padding: 1.6rem;
+    width: min(92vw, 420px);
+    text-align: center;
+  }
+
+  .wallet-chain-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .wallet-chain-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.85rem 0.6rem;
+    border-radius: 18px;
+    border: 1px solid #e2e7f2;
+    background: #f8f9ff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #1d2b4c;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .wallet-chain-card:hover {
+    transform: translateY(-2px);
+    border-color: #c7d2fe;
+    box-shadow: 0 12px 20px rgba(30, 64, 175, 0.15);
+  }
+
+  .wallet-chain-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: #ffffff;
+  }
+
+  .wallet-chain-icon.eth {
+    background: radial-gradient(circle at 30% 30%, #93c5fd 0%, #1e3a8a 70%);
+  }
+
+  .wallet-chain-icon.bsc {
+    background: radial-gradient(circle at 30% 30%, #fcd34d 0%, #f59e0b 75%);
+    color: #3f2a00;
+  }
+
+  .wallet-chain-icon.sol {
+    background: linear-gradient(135deg, #14f195 0%, #9945ff 100%);
+  }
+
+  .wallet-chain-name {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #5b6b85;
+  }
+
   .bottom-nav {
     position: fixed;
     left: 0;

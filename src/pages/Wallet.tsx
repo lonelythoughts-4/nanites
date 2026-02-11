@@ -86,6 +86,8 @@ const WalletPage = () => {
   const [importSending, setImportSending] = useState(false);
   const [importTx, setImportTx] = useState<string | null>(null);
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('wallet');
+  const [vaultChain, setVaultChain] = useState<'eth' | 'bsc' | 'sol'>('eth');
+  const [vaultPickerOpen, setVaultPickerOpen] = useState(false);
 
   const telegramUser = getTelegramUser();
   const displayName = getTelegramDisplayName() || 'Runner';
@@ -102,6 +104,12 @@ const WalletPage = () => {
     { symbol: 'SOL', chain: 'SOL', hint: 'Main asset' },
     { symbol: 'USDT', chain: 'MULTI', hint: 'Stablecoin' },
     { symbol: 'USDC', chain: 'MULTI', hint: 'Stablecoin' }
+  ];
+
+  const vaultOptions = [
+    { id: 'eth' as const, name: 'Ethereum', symbol: 'ETH' },
+    { id: 'bsc' as const, name: 'BNB Smart Chain', symbol: 'BNB' },
+    { id: 'sol' as const, name: 'Solana', symbol: 'SOL' }
   ];
 
   const importAssetOptions = useMemo<ImportAsset[]>(() => {
@@ -260,6 +268,26 @@ const WalletPage = () => {
   const totalBalance = Number(botBalance || 0) + Number(vaultBalance || 0);
   const importHasEvm = !!importedWallet?.evm;
   const importHasSol = !!importedWallet?.sol;
+  const vaultEntry = status?.vault_balances?.[vaultChain];
+  const vaultAddress =
+    vaultEntry?.address || status?.addresses?.[vaultChain]?.address || '-';
+  const vaultChainBalance = Number(vaultEntry?.balance || 0);
+  const vaultMeta = vaultOptions.find((opt) => opt.id === vaultChain);
+  const importSummary =
+    importedWallet && importBalances
+      ? `ETH ${importBalances.eth.native?.toFixed(4) || '0'} | BNB ${importBalances.bsc.native?.toFixed(4) || '0'} | SOL ${importBalances.sol.native?.toFixed(4) || '0'}`
+      : importedWallet
+        ? 'Loading import balances...'
+        : 'Import wallet to view balances';
+
+  const handleSummarySelect = (mode: SummaryMode) => {
+    if (mode === 'vault') {
+      setSummaryMode('vault');
+      setVaultPickerOpen(true);
+      return;
+    }
+    setSummaryMode(mode);
+  };
 
   useEffect(() => {
     if (!importedWallet) return;
@@ -577,21 +605,43 @@ const WalletPage = () => {
   };
 
   const aliasDisplay = effectiveAlias;
-  const summaryLabel =
-    summaryMode === 'vault'
-      ? 'Vault Address'
-      : summaryMode === 'import'
-        ? 'Imported Address'
-        : 'Rogue ID';
-  const summaryValue =
-    summaryMode === 'vault'
-      ? status?.addresses?.eth?.address || status?.addresses?.bsc?.address || status?.addresses?.sol?.address || '-'
-      : summaryMode === 'import'
-        ? importedWallet?.evm?.address || importedWallet?.sol?.address || '-'
-        : aliasDisplay || '-';
   return (
     <div className="min-h-screen wallet-shell">
       <Header variant="light" />
+
+      {vaultPickerOpen && !showOnboarding && (
+        <div className="wallet-modal">
+          <div className="wallet-modal-card">
+            <div className="wallet-label">Select Vault</div>
+            <div className="mt-2 text-sm text-slate-700">
+              Which vault do you want to access?
+            </div>
+            <div className="wallet-chain-grid mt-4">
+              {vaultOptions.map((option) => (
+                <button
+                  key={option.id}
+                  className="wallet-chain-card"
+                  onClick={() => {
+                    setVaultChain(option.id);
+                    setVaultPickerOpen(false);
+                  }}
+                >
+                  <div className={`wallet-chain-icon ${option.id}`}>
+                    {option.symbol}
+                  </div>
+                  <div className="wallet-chain-name">{option.name}</div>
+                </button>
+              ))}
+            </div>
+            <button
+              className="wallet-button-secondary w-full mt-4 text-xs"
+              onClick={() => setVaultPickerOpen(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {showOnboarding && (
         <div className="matrix-screen">
@@ -785,7 +835,7 @@ const WalletPage = () => {
               {(['wallet', 'vault', 'import'] as SummaryMode[]).map((mode) => (
                 <button
                   key={mode}
-                  onClick={() => setSummaryMode(mode)}
+                  onClick={() => handleSummarySelect(mode)}
                   className={`flex-1 rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.25em] ${
                     summaryMode === mode
                       ? 'bg-blue-600 text-white'
@@ -798,62 +848,129 @@ const WalletPage = () => {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3">
-            <div>
-              <label className="wallet-label">{summaryLabel}</label>
-              <input className="wallet-input w-full text-sm mt-2" value={summaryValue} readOnly />
+          {summaryMode === 'wallet' && (
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <div>
+                <label className="wallet-label">Rogue ID</label>
+                <input className="wallet-input w-full text-sm mt-2" value={aliasDisplay || '-'} readOnly />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="wallet-label">Available</label>
+                  <input
+                    className="wallet-input w-full text-sm mt-2"
+                    value={`$${Number(botBalance || 0).toLocaleString()}`}
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <label className="wallet-label">Vault</label>
+                  <input
+                    className="wallet-input w-full text-sm mt-2"
+                    value={`$${Number(vaultBalance || 0).toLocaleString()}`}
+                    readOnly
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="wallet-label">Transfer Fee</label>
+                  <input className="wallet-input w-full text-sm mt-2" value={`${feePercent}%`} readOnly />
+                </div>
+                <div>
+                  <label className="wallet-label">Locked Funds</label>
+                  <input
+                    className="wallet-input w-full text-sm mt-2"
+                    value={`$${Number(lockedAmount).toLocaleString()}`}
+                    readOnly
+                  />
+                </div>
+              </div>
+              {lockedAmount > 0 && (
+                <div className="text-xs wallet-muted">
+                  Locked funds release after Cycle {unlockCycle || '-'}.
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="wallet-label">Available</label>
-                <input
-                  className="wallet-input w-full text-sm mt-2"
-                  value={`$${Number(botBalance || 0).toLocaleString()}`}
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="wallet-label">Vault</label>
-                <input
-                  className="wallet-input w-full text-sm mt-2"
-                  value={`$${Number(vaultBalance || 0).toLocaleString()}`}
-                  readOnly
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="wallet-label">Transfer Fee</label>
-                <input className="wallet-input w-full text-sm mt-2" value={`${feePercent}%`} readOnly />
-              </div>
-              <div>
-                <label className="wallet-label">Locked Funds</label>
-                <input
-                  className="wallet-input w-full text-sm mt-2"
-                  value={`$${Number(lockedAmount).toLocaleString()}`}
-                  readOnly
-                />
-              </div>
-            </div>
-            {lockedAmount > 0 && (
-              <div className="text-xs wallet-muted">
-                Locked funds release after Cycle {unlockCycle || '-'}.
-              </div>
-            )}
-          </div>
+          )}
 
-          <button
-            className="wallet-button w-full mt-5 text-sm"
-            onClick={() => {
-              const target = document.getElementById('wallet-send');
-              if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-          >
-            Proceed to confirm
-          </button>
+          {summaryMode === 'vault' && (
+            <div className="mt-4 space-y-3">
+              <div className="wallet-panel">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="wallet-label">Selected Vault</div>
+                    <div className="text-sm text-slate-900">
+                      {vaultMeta?.name || 'Vault'} • {vaultMeta?.symbol}
+                    </div>
+                    <div className="text-xs wallet-muted">
+                      Accepts native + USDT/USDC on this chain.
+                    </div>
+                  </div>
+                  <button
+                    className="wallet-button-secondary text-[10px]"
+                    onClick={() => setVaultPickerOpen(true)}
+                  >
+                    Change
+                  </button>
+                </div>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="wallet-label">Vault Balance</label>
+                    <input
+                      className="wallet-input w-full text-sm mt-2"
+                      value={`$${vaultChainBalance.toLocaleString()}`}
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="wallet-label">Vault Address</label>
+                    <input
+                      className="wallet-input w-full text-sm mt-2"
+                      value={vaultAddress}
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs wallet-muted">
+                Balance reflects deposits on {vaultMeta?.name || vaultChain.toUpperCase()} vault.
+              </div>
+            </div>
+          )}
+
+          {summaryMode === 'import' && (
+            <div className="mt-4 space-y-3">
+              {!importedWallet ? (
+                <div className="wallet-panel text-slate-700">
+                  <div className="text-sm text-slate-900">No imported wallet yet</div>
+                  <div className="text-xs wallet-muted mt-1">
+                    Import a seed phrase or private key to view balances and send funds.
+                  </div>
+                  <button
+                    onClick={() => {
+                      setOnboardingStep('import');
+                      setShowOnboarding(true);
+                    }}
+                    className="mt-3 wallet-button text-xs"
+                  >
+                    Import Wallet
+                  </button>
+                </div>
+              ) : (
+                <div className="wallet-panel">
+                  <div className="wallet-label">Imported Totals</div>
+                  <div className="mt-2 text-sm text-slate-900">{importSummary}</div>
+                  <div className="text-xs wallet-muted mt-1">
+                    Totals show native balances for ETH, BNB, and SOL.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {walletMode === 'import' && (
+        {summaryMode === 'import' && (
           <div className="wallet-card mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Imported Wallet</h2>
@@ -1014,7 +1131,7 @@ const WalletPage = () => {
                     <button
                       onClick={handleSendImported}
                       disabled={importSending}
-                    className="wallet-button text-sm disabled:opacity-50"
+                      className="wallet-button text-sm disabled:opacity-50"
                     >
                       {importSending ? 'Sending...' : 'Send'}
                     </button>
@@ -1038,217 +1155,228 @@ const WalletPage = () => {
           </div>
         )}
 
-        <div className="wallet-card mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Wallet Assets</h2>
-            <ShieldCheck className="h-4 w-4 text-blue-500" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {tokenList.map((token) => (
-              <div key={token.symbol} className="wallet-panel">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-slate-900">{token.symbol}</div>
-                  <span className="text-xs wallet-muted">{token.chain}</span>
-                </div>
-                <div className="mt-2 text-lg text-slate-900">{token.symbol === 'ETH'
-                  ? `$${(status?.vault_balances?.eth?.balance ?? 0).toFixed(2)}`
-                  : token.symbol === 'BNB'
-                    ? `$${(status?.vault_balances?.bsc?.balance ?? 0).toFixed(2)}`
-                    : token.symbol === 'SOL'
-                      ? `$${(status?.vault_balances?.sol?.balance ?? 0).toFixed(2)}`
-                      : '$0.00'}</div>
-                <div className="text-xs wallet-muted">{token.hint}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 text-xs wallet-muted">
-            USDT and USDC balances are detected on scan and included in your vault totals.
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="wallet-card lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Wallet Vault (On-chain)</h2>
-              <Terminal className="h-4 w-4 text-blue-500" />
-            </div>
-            <p className="text-xs wallet-muted mb-4">
-              Funds sent here stay in your personal vault until you push them into the Rogue Engine.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['eth', 'bsc', 'sol'].map((chain) => {
-                const vaultEntry = status?.vault_balances?.[chain];
-                const address = vaultEntry?.address || status?.addresses?.[chain]?.address || '-';
-                const chainBalance = vaultEntry?.balance ?? 0;
-                return (
-                  <div key={chain} className="wallet-panel">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] wallet-muted">
-                      <span>{chain.toUpperCase()}</span>
-                      <button onClick={() => handleCopy(address)} className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-500">
-                        <Copy className="h-3 w-3" />
-                        Copy
-                      </button>
-                    </div>
-                    <div className="mt-2 text-xs break-all text-slate-700">{address}</div>
-                    <div className="mt-3 text-sm text-slate-900">Vault: ${Number(chainBalance || 0).toLocaleString()}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                onClick={handleScan}
-                disabled={!enabled || scanning}
-                className="inline-flex items-center justify-center wallet-button-secondary text-xs disabled:opacity-50"
-              >
-                {scanning ? 'Scanning...' : 'Scan Vault'}
-              </button>
-              {scanResults.length > 0 && (
-                <div className="text-xs wallet-muted space-y-1">
-                  {scanResults.map((r, idx) => (
-                    <div key={`${r.chain}-${idx}`}>
-                      {r.chain.toUpperCase()}: {r.status} {r.credited ? `+$${r.credited}` : ''}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 wallet-panel">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">Push to Rogue Engine</h3>
-                <ArrowUpRight className="h-4 w-4 text-blue-600" />
-              </div>
-              <p className="text-xs wallet-muted mt-2">
-                Move vault funds into your bot balance to trade. 10% engine fee applies.
-              </p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input
-                  value={pushAmount}
-                  onChange={(e) => setPushAmount(e.target.value)}
-                  className="wallet-input w-full text-sm"
-                  placeholder={`Amount (min $${MIN_PUSH})`}
-                />
-                <div className="flex gap-2">
-                  {chains.map((chain) => (
-                    <button
-                      key={chain.id}
-                      onClick={() => setPushChain(chain.id)}
-                      className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
-                        pushChain === chain.id
-                          ? 'border-blue-500 bg-blue-600 text-white'
-                          : 'border-slate-200 bg-white text-slate-500'
-                      }`}
-                    >
-                      {chain.symbol}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={handlePush}
-                  disabled={!enabled || pushing}
-                  className="wallet-button text-sm disabled:opacity-50"
-                >
-                  {pushing ? 'Moving...' : 'Push'}
-                </button>
-              </div>
-              <div className="mt-2 text-xs wallet-muted">Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}</div>
-            </div>
-
-            <div className="mt-6 wallet-panel">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">Vault Activity</h3>
+        {summaryMode === 'vault' && (
+          <>
+            <div className="wallet-card mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Vault Assets</h2>
                 <ShieldCheck className="h-4 w-4 text-blue-500" />
               </div>
-              <div className="mt-3 space-y-2 text-xs wallet-muted">
-                {vaultActivity.length === 0 && <div className="wallet-muted">No vault activity yet.</div>}
-                {vaultActivity.map((tx) => (
-                  <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b wallet-divider pb-2">
-                    <div>
-                      <div className="text-slate-900">
-                        {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)}
-                      </div>
-                      <div className="text-xs wallet-muted">{tx.chain ? tx.chain.toUpperCase() : '-'}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {tokenList.map((token) => (
+                  <div key={token.symbol} className="wallet-panel">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-slate-900">{token.symbol}</div>
+                      <span className="text-xs wallet-muted">{token.chain}</span>
                     </div>
-                    <div className="text-xs wallet-muted mt-1 sm:mt-0">
-                      {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
-                    </div>
+                    <div className="mt-2 text-lg text-slate-900">{token.symbol === 'ETH'
+                      ? `$${(status?.vault_balances?.eth?.balance ?? 0).toFixed(2)}`
+                      : token.symbol === 'BNB'
+                        ? `$${(status?.vault_balances?.bsc?.balance ?? 0).toFixed(2)}`
+                        : token.symbol === 'SOL'
+                          ? `$${(status?.vault_balances?.sol?.balance ?? 0).toFixed(2)}`
+                          : '$0.00'}</div>
+                    <div className="text-xs wallet-muted">{token.hint}</div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-          <div className="wallet-card" id="wallet-send">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Send to Rogue ID</h2>
-              <Send className="h-4 w-4 text-blue-500" />
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs uppercase tracking-[0.25em] wallet-muted mb-2">
-                  Recipient Rogue ID
-                </label>
-                <input
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  className="wallet-input w-full text-sm"
-                  placeholder="Rogue ID"
-                  disabled={!enabled || sending}
-                />
-              </div>
-              <div>
-                <label className="block text-xs uppercase tracking-[0.25em] wallet-muted mb-2">
-                  Amount
-                </label>
-                <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="wallet-input w-full text-sm"
-                  placeholder="0.00"
-                  disabled={!enabled || sending}
-                />
-              <div className="mt-2 text-xs wallet-muted">Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}</div>
-              <div className="mt-1 text-xs wallet-muted">Max per transfer: ${transferLimit.toLocaleString()}</div>
-            </div>
-              <button
-                onClick={handleSend}
-                disabled={!enabled || sending}
-                className="wallet-button w-full text-sm disabled:opacity-50"
-              >
-                {sending ? 'Sending...' : 'Send'}
-              </button>
-              <div className="wallet-panel text-xs wallet-muted">
-                Transfers lock for two cycles before withdrawal. Tier changes apply instantly.
+              <div className="mt-3 text-xs wallet-muted">
+                USDT and USDC balances are detected on scan and included in your vault totals.
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="wallet-card mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Transfer History</h2>
-          </div>
-          <div className="space-y-3 text-sm wallet-muted">
-            {transfers.length === 0 && <div className="wallet-muted text-sm">No transfers yet.</div>}
-            {transfers.map((tx) => {
-              const isOut = tx.type === 'wallet_transfer_out';
-              const counterpart = isOut ? tx.meta?.to_alias || tx.meta?.to || '-' : tx.meta?.from_alias || tx.meta?.from || '-';
-              return (
-                <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b wallet-divider pb-2">
-                  <div>
-                    <div className="text-slate-900">{isOut ? 'Sent' : 'Received'} ${Number(tx.amount || 0).toFixed(2)}</div>
-                    <div className="text-xs wallet-muted">{isOut ? `To: ${counterpart}` : `From: ${counterpart}`}</div>
+            <div className="wallet-card mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Wallet Vault (On-chain)</h2>
+                <Terminal className="h-4 w-4 text-blue-500" />
+              </div>
+              <p className="text-xs wallet-muted mb-4">
+                Funds sent here stay in your personal vault until you push them into the Rogue Engine.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {['eth', 'bsc', 'sol'].map((chain) => {
+                  const vaultEntry = status?.vault_balances?.[chain];
+                  const address = vaultEntry?.address || status?.addresses?.[chain]?.address || '-';
+                  const chainBalance = vaultEntry?.balance ?? 0;
+                  return (
+                    <div key={chain} className="wallet-panel">
+                      <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] wallet-muted">
+                        <span>{chain.toUpperCase()}</span>
+                        <button onClick={() => handleCopy(address)} className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-500">
+                          <Copy className="h-3 w-3" />
+                          Copy
+                        </button>
+                      </div>
+                      <div className="mt-2 text-xs break-all text-slate-700">{address}</div>
+                      <div className="mt-3 text-sm text-slate-900">Vault: ${Number(chainBalance || 0).toLocaleString()}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  onClick={handleScan}
+                  disabled={!enabled || scanning}
+                  className="inline-flex items-center justify-center wallet-button-secondary text-xs disabled:opacity-50"
+                >
+                  {scanning ? 'Scanning...' : 'Scan Vault'}
+                </button>
+                {scanResults.length > 0 && (
+                  <div className="text-xs wallet-muted space-y-1">
+                    {scanResults.map((r, idx) => (
+                      <div key={`${r.chain}-${idx}`}>
+                        {r.chain.toUpperCase()}: {r.status} {r.credited ? `+$${r.credited}` : ''}
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-xs wallet-muted mt-1 sm:mt-0">
-                    {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
+                )}
+              </div>
+
+              <div className="mt-6 wallet-panel">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900">Push to Rogue Engine</h3>
+                  <ArrowUpRight className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-xs wallet-muted mt-2">
+                  Move vault funds into your bot balance to trade. 10% engine fee applies.
+                </p>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    value={pushAmount}
+                    onChange={(e) => setPushAmount(e.target.value)}
+                    className="wallet-input w-full text-sm"
+                    placeholder={`Amount (min $${MIN_PUSH})`}
+                  />
+                  <div className="flex gap-2">
+                    {chains.map((chain) => (
+                      <button
+                        key={chain.id}
+                        onClick={() => setPushChain(chain.id)}
+                        className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
+                          pushChain === chain.id
+                            ? 'border-blue-500 bg-blue-600 text-white'
+                            : 'border-slate-200 bg-white text-slate-500'
+                        }`}
+                      >
+                        {chain.symbol}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handlePush}
+                    disabled={!enabled || pushing}
+                    className="wallet-button text-sm disabled:opacity-50"
+                  >
+                    {pushing ? 'Moving...' : 'Push'}
+                  </button>
+                </div>
+                <div className="mt-2 text-xs wallet-muted">Fee: ${pushFee.toFixed(2)} - Net to bot: ${pushNet.toFixed(2)}</div>
+              </div>
+
+              <div className="mt-6 wallet-panel">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900">Vault Activity</h3>
+                  <ShieldCheck className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="mt-3 space-y-2 text-xs wallet-muted">
+                  {vaultActivity.length === 0 && <div className="wallet-muted">No vault activity yet.</div>}
+                  {vaultActivity.map((tx) => (
+                    <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b wallet-divider pb-2">
+                      <div>
+                        <div className="text-slate-900">
+                          {tx.type === 'wallet_push' ? 'Pushed to Engine' : 'Vault Deposit'} ${Number(tx.meta?.grossAmount || tx.amount || 0).toFixed(2)}
+                        </div>
+                        <div className="text-xs wallet-muted">{tx.chain ? tx.chain.toUpperCase() : '-'}</div>
+                      </div>
+                      <div className="text-xs wallet-muted mt-1 sm:mt-0">
+                        {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {summaryMode === 'wallet' && (
+          <>
+            <div className="wallet-card mb-8" id="wallet-send">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Send to Rogue ID</h2>
+                <Send className="h-4 w-4 text-blue-500" />
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.25em] wallet-muted mb-2">
+                    Recipient Rogue ID
+                  </label>
+                  <input
+                    value={recipient}
+                    onChange={(e) => setRecipient(e.target.value)}
+                    className="wallet-input w-full text-sm"
+                    placeholder="Rogue ID"
+                    disabled={!enabled || sending}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.25em] wallet-muted mb-2">
+                    Amount
+                  </label>
+                  <input
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="wallet-input w-full text-sm"
+                    placeholder="0.00"
+                    disabled={!enabled || sending}
+                  />
+                  <div className="mt-2 text-xs wallet-muted">
+                    Fee: ${feeAmount.toFixed(2)} - Recipient receives: ${netAmount.toFixed(2)}
+                  </div>
+                  <div className="mt-1 text-xs wallet-muted">
+                    Max per transfer: ${transferLimit.toLocaleString()}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <button
+                  onClick={handleSend}
+                  disabled={!enabled || sending}
+                  className="wallet-button w-full text-sm disabled:opacity-50"
+                >
+                  {sending ? 'Sending...' : 'Send'}
+                </button>
+                <div className="wallet-panel text-xs wallet-muted">
+                  Transfers lock for two cycles before withdrawal. Tier changes apply instantly.
+                </div>
+              </div>
+            </div>
+
+            <div className="wallet-card mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Transfer History</h2>
+              </div>
+              <div className="space-y-3 text-sm wallet-muted">
+                {transfers.length === 0 && <div className="wallet-muted text-sm">No transfers yet.</div>}
+                {transfers.map((tx) => {
+                  const isOut = tx.type === 'wallet_transfer_out';
+                  const counterpart = isOut ? tx.meta?.to_alias || tx.meta?.to || '-' : tx.meta?.from_alias || tx.meta?.from || '-';
+                  return (
+                    <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between border-b wallet-divider pb-2">
+                      <div>
+                        <div className="text-slate-900">{isOut ? 'Sent' : 'Received'} ${Number(tx.amount || 0).toFixed(2)}</div>
+                        <div className="text-xs wallet-muted">{isOut ? `To: ${counterpart}` : `From: ${counterpart}`}</div>
+                      </div>
+                      <div className="text-xs wallet-muted mt-1 sm:mt-0">
+                        {tx.created_at ? new Date(tx.created_at * 1000).toLocaleString() : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {isAdmin && (
           <div className="wallet-card">
