@@ -1065,4 +1065,58 @@ All colors MUST be HSL.
   .wallet-divider {
     border-color: #e6ecf5;
   }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    border-top: 1px solid #e2e8f0;
+    backdrop-filter: blur(18px);
+  }
+
+  .bottom-nav-inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.55rem 0.6rem;
+    padding-bottom: calc(0.65rem + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav-dark {
+    background: rgba(5, 7, 13, 0.92);
+    border-top-color: rgba(148, 163, 184, 0.2);
+    color: #cbd5f5;
+  }
+
+  .bottom-nav-light {
+    background: rgba(255, 255, 255, 0.94);
+    border-top-color: #e2e8f0;
+    color: #1f2a44;
+  }
+
+  .bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    opacity: 0.7;
+  }
+
+  .bottom-tab-active {
+    opacity: 1;
+  }
+
+  .bottom-nav-dark .bottom-tab-active {
+    color: #facc15;
+  }
+
+  .bottom-nav-light .bottom-tab-active {
+    color: #1d4ed8;
+  }
 }

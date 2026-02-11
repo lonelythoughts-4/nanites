@@ -9,10 +9,9 @@ import { getTelegramDisplayName, getTelegramUser } from '../lib/telegram';
 import {
   deriveImportedWallet,
   getImportedBalances,
-  sendImportedTransaction,
-  ImportedBalances,
-  ImportedWallet
+  sendImportedTransaction
 } from '../lib/importWallet';
+import type { ImportedBalances, ImportedWallet } from '../lib/importWallet';
 
 type WalletStatus = {
   enabled: boolean;
@@ -37,6 +36,8 @@ type OnboardingStep = 'intro' | 'alias' | 'terms' | 'choice' | 'import' | 'decli
 type ImportMode = 'seed' | 'private';
 
 type WalletMode = 'native' | 'import' | '';
+
+type ImportAsset = 'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC';
 
 const MIN_PUSH = 20;
 const DEPOSIT_FEE_PERCENT = 0.1;
@@ -76,7 +77,7 @@ const WalletPage = () => {
   const [importLoading, setImportLoading] = useState(false);
   const [importRefreshing, setImportRefreshing] = useState(false);
   const [importChain, setImportChain] = useState<'eth' | 'bsc' | 'sol'>('eth');
-  const [importAsset, setImportAsset] = useState<'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC'>('ETH');
+  const [importAsset, setImportAsset] = useState<ImportAsset>('ETH');
   const [importRecipient, setImportRecipient] = useState('');
   const [importSendAmount, setImportSendAmount] = useState('');
   const [importSending, setImportSending] = useState(false);
@@ -99,10 +100,10 @@ const WalletPage = () => {
     { symbol: 'USDC', chain: 'MULTI', hint: 'Stablecoin' }
   ];
 
-  const importAssetOptions = useMemo(() => {
-    if (importChain === 'eth') return ['ETH', 'USDT', 'USDC'] as const;
-    if (importChain === 'bsc') return ['BNB', 'USDT', 'USDC'] as const;
-    return ['SOL', 'USDT', 'USDC'] as const;
+  const importAssetOptions = useMemo<ImportAsset[]>(() => {
+    if (importChain === 'eth') return ['ETH', 'USDT', 'USDC'];
+    if (importChain === 'bsc') return ['BNB', 'USDT', 'USDC'];
+    return ['SOL', 'USDT', 'USDC'];
   }, [importChain]);
 
   useEffect(() => {
@@ -138,16 +139,17 @@ const WalletPage = () => {
     ]);
 
     if (statusRes.status === 'fulfilled') {
-      setStatus(statusRes.value);
-      setAdminEnabled(statusRes.value.enabled);
-      setAdminFee(String(statusRes.value.transfer_fee_percent ?? 5));
-      setAdminLimit(String(statusRes.value.transfer_limit ?? 1000));
+      const statusValue = statusRes.value as WalletStatus;
+      setStatus(statusValue);
+      setAdminEnabled(statusValue.enabled);
+      setAdminFee(String(statusValue.transfer_fee_percent ?? 5));
+      setAdminLimit(String(statusValue.transfer_limit ?? 1000));
     }
     if (transferRes.status === 'fulfilled') {
-      setTransfers(transferRes.value || []);
+      setTransfers((transferRes.value as any[]) || []);
     }
     if (activityRes.status === 'fulfilled') {
-      setVaultActivity(activityRes.value || []);
+      setVaultActivity((activityRes.value as any[]) || []);
     }
   };
 

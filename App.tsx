@@ -18,6 +18,7 @@ import { initializeWebApp, enforceInitDataFreshness } from './src/lib/telegram';
 import WebAppNotice from './src/components/WebAppNotice';
 import LaunchGate from './src/components/LaunchGate';
 import LaunchLoading from './src/components/LaunchLoading';
+import BottomNav from './src/components/BottomNav';
 
 const App: React.FC = () => {
   const launchGateEnabled = true;
@@ -75,7 +76,7 @@ const App: React.FC = () => {
   return (
     <Theme appearance="inherit" radius="large" scaling="100%">
       <Router>
-        <div className="min-h-screen font-sans app-shell">
+        <div className="min-h-screen font-sans app-shell pb-24">
           <WebAppNotice />
           <Routes>
             <Route path="/" element={<Home />} />
@@ -97,6 +98,7 @@ const App: React.FC = () => {
             className="z-50"
           />
         </div>
+        <BottomNav />
       </Router>
     </Theme>
   );
