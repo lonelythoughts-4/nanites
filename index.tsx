@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
+import { ThemeProvider } from './src/lib/theme';
 import './styles.css';
 import { Buffer } from 'buffer';
 import process from 'process';
@@ -58,6 +59,8 @@ window.onunhandledrejection = function (event) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </React.StrictMode>
 );

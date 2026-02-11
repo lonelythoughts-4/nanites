@@ -20,8 +20,10 @@ import WebAppNotice from './src/components/WebAppNotice';
 import LaunchGate from './src/components/LaunchGate';
 import LaunchLoading from './src/components/LaunchLoading';
 import BottomNav from './src/components/BottomNav';
+import { useTheme } from './src/lib/theme';
 
 const App: React.FC = () => {
+  const { theme } = useTheme();
   const launchGateEnabled = true;
   const [gateDismissed, setGateDismissed] = useState(() => {
     try {
@@ -52,7 +54,7 @@ const App: React.FC = () => {
 
   if (launchGateEnabled && !gateDismissed) {
     return (
-      <Theme appearance="inherit" radius="large" scaling="100%">
+      <Theme appearance={theme} radius="large" scaling="100%">
         {showLaunchLoading && (
           <LaunchLoading
             onComplete={() => {
@@ -86,9 +88,9 @@ const App: React.FC = () => {
   }
 
   return (
-    <Theme appearance="inherit" radius="large" scaling="100%">
+      <Theme appearance={theme} radius="large" scaling="100%">
       <Router>
-        <div className="min-h-screen font-sans app-shell pb-24">
+        <div className={`min-h-screen font-sans app-shell theme-${theme} pb-24`}>
           <WebAppNotice />
           <Routes>
             <Route path="/" element={<Home />} />

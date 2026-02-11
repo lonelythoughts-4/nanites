@@ -931,6 +931,238 @@ All colors MUST be HSL.
     background-color: rgba(15, 23, 42, 0.7);
   }
 
+  .app-shell.theme-light {
+    background:
+      radial-gradient(circle at 10% 0%, rgba(251, 191, 36, 0.18), transparent 50%),
+      radial-gradient(circle at 80% 10%, rgba(252, 211, 77, 0.2), transparent 55%),
+      radial-gradient(circle at 50% 90%, rgba(253, 230, 138, 0.25), transparent 60%),
+      #fffaf0;
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .bg-gray-50 {
+    background: #fff7ed;
+  }
+
+  .app-shell.theme-light .bg-white {
+    background-color: #ffffff;
+    border-color: #f3e8c7;
+    box-shadow: 0 18px 40px rgba(180, 83, 9, 0.12);
+  }
+
+  .app-shell.theme-light .border-gray-200 {
+    border-color: #f3e8c7;
+  }
+
+  .app-shell.theme-light .text-gray-900 {
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .text-gray-700 {
+    color: #475569;
+  }
+
+  .app-shell.theme-light .text-gray-600,
+  .app-shell.theme-light .text-gray-500 {
+    color: #64748b;
+  }
+
+  .app-shell.theme-light .bg-blue-600 {
+    background-color: #d97706;
+  }
+
+  .app-shell.theme-light .hover\:bg-blue-700:hover {
+    background-color: #b45309;
+  }
+
+  .app-shell.theme-light .bg-blue-100 {
+    background-color: #fef3c7;
+  }
+
+  .app-shell.theme-light .text-blue-700,
+  .app-shell.theme-light .text-blue-600 {
+    color: #b45309;
+  }
+
+  .app-shell.theme-light .hover\:text-blue-700:hover,
+  .app-shell.theme-light .hover\:text-blue-600:hover {
+    color: #92400e;
+  }
+
+  .app-shell.theme-light .bg-gray-100 {
+    background-color: #fff7ed;
+  }
+
+  .app-shell.theme-light .dashboard-shell {
+    background:
+      radial-gradient(circle at 25% 0%, rgba(251, 191, 36, 0.2), transparent 55%),
+      radial-gradient(circle at 80% 20%, rgba(253, 230, 138, 0.35), transparent 60%),
+      #fff7ed;
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .dashboard-card {
+    background: #ffffff;
+    border: 1px solid #f3e8c7;
+    box-shadow: 0 18px 40px rgba(180, 83, 9, 0.12);
+  }
+
+  .app-shell.theme-light .dashboard-title,
+  .app-shell.theme-light .dashboard-section-title,
+  .app-shell.theme-light .dashboard-card-value {
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .dashboard-kicker,
+  .app-shell.theme-light .dashboard-subtitle,
+  .app-shell.theme-light .dashboard-card-title,
+  .app-shell.theme-light .dashboard-card-sub,
+  .app-shell.theme-light .dashboard-label,
+  .app-shell.theme-light .dashboard-muted,
+  .app-shell.theme-light .dashboard-progress-meta {
+    color: #64748b;
+  }
+
+  .app-shell.theme-light .dashboard-refresh {
+    background: #fff7ed;
+    border-color: #f3e8c7;
+    color: #92400e;
+  }
+
+  .app-shell.theme-light .dashboard-secondary-btn {
+    border-color: #f3e8c7;
+    color: #92400e;
+  }
+
+  .app-shell.theme-light .dashboard-progress-bar {
+    background: #fde68a;
+  }
+
+  .app-shell.theme-light .dashboard-progress-bar span {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+  }
+
+  .app-shell.theme-light .dashboard-callout {
+    background: rgba(251, 191, 36, 0.18);
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #92400e;
+  }
+
+  .app-shell.theme-light .trade-shell {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(251, 191, 36, 0.2), transparent 55%),
+      radial-gradient(circle at 85% 15%, rgba(253, 230, 138, 0.35), transparent 55%),
+      radial-gradient(circle at 50% 90%, rgba(254, 240, 138, 0.3), transparent 60%),
+      #fff7ed;
+  }
+
+  .app-shell.theme-light .trade-hero-copy {
+    background: #ffffff;
+    border: 1px solid #f3e8c7;
+    box-shadow: 0 18px 40px rgba(180, 83, 9, 0.12);
+  }
+
+  .app-shell.theme-light .trade-kicker,
+  .app-shell.theme-light .trade-subtitle,
+  .app-shell.theme-light .trade-meta {
+    color: #64748b;
+  }
+
+  .app-shell.theme-light .trade-title,
+  .app-shell.theme-light .trade-meta strong {
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .trade-meta {
+    background: #fff7ed;
+    border-color: #f3e8c7;
+  }
+
+  .app-shell.theme-light .trade-card {
+    background: #ffffff;
+    border-color: #f3e8c7;
+    box-shadow: 0 18px 40px rgba(180, 83, 9, 0.12);
+  }
+
+  .app-shell.theme-light .trade-card-title {
+    color: #b45309;
+  }
+
+  .app-shell.theme-light .trade-card-value {
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .trade-card-sub {
+    color: #64748b;
+  }
+
+  .app-shell.theme-light .trade-log {
+    background: #ffffff;
+    border-color: #f3e8c7;
+    box-shadow: inset 0 0 24px rgba(251, 191, 36, 0.12);
+  }
+
+  .app-shell.theme-light .trade-log-title {
+    color: #1f2937;
+  }
+
+  .app-shell.theme-light .trade-log-pill {
+    border-color: #fcd34d;
+    color: #b45309;
+    background: #fef3c7;
+  }
+
+  .app-shell.theme-light .trade-log-row {
+    color: #475569;
+    border-bottom-color: #f3e8c7;
+  }
+
+  .app-shell.theme-light .dashboard-primary-btn {
+    background: #f59e0b;
+    color: #1f2937;
+  }
+
+  .app-shell.theme-dark .bg-amber-50 {
+    background-color: rgba(15, 23, 42, 0.88);
+  }
+
+  .app-shell.theme-dark .border-amber-100,
+  .app-shell.theme-dark .border-amber-200 {
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .app-shell.theme-dark .text-amber-500,
+  .app-shell.theme-dark .text-amber-700,
+  .app-shell.theme-dark .text-amber-800,
+  .app-shell.theme-dark .text-amber-900 {
+    color: #facc15;
+  }
+
+  .app-shell.theme-dark .bg-amber-100 {
+    background-color: rgba(251, 191, 36, 0.18);
+  }
+
+  .app-shell.theme-dark .bg-amber-500 {
+    background-color: #d97706;
+  }
+
+  .app-shell.theme-dark .hover\:bg-amber-600:hover {
+    background-color: #b45309;
+  }
+
+  .app-shell.theme-dark .text-slate-900 {
+    color: #f8fafc;
+  }
+
+  .app-shell.theme-dark .text-slate-700 {
+    color: #cbd5f5;
+  }
+
+  .app-shell.theme-dark .text-slate-600,
+  .app-shell.theme-dark .text-slate-500 {
+    color: #94a3b8;
+  }
+
   .rogue-logo {
     font-family: 'Bangers', 'Fredoka', cursive;
     font-size: 1.6rem;
@@ -1499,7 +1731,7 @@ All colors MUST be HSL.
   }
 
   .bottom-nav-light .bottom-tab-active {
-    color: #1d4ed8;
+    color: #b45309;
   }
 
   /* Professional dashboard */

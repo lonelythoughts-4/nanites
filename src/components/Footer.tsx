@@ -1,18 +1,21 @@
 import React from 'react';
+import { useTheme } from '../lib/theme';
 import { ExternalLink } from 'lucide-react';
 
 type FooterProps = {
   variant?: 'light' | 'dark';
 };
 
-const Footer = ({ variant = 'dark' }: FooterProps) => {
-  const isDark = variant === 'dark';
+const Footer = ({ variant }: FooterProps) => {
+  const { theme } = useTheme();
+  const resolvedVariant = variant ?? theme;
+  const isDark = resolvedVariant === 'dark';
   const wrapperClass = isDark
     ? 'bg-transparent border-t border-slate-800/70'
-    : 'bg-gray-50 border-t border-gray-200';
+    : 'bg-amber-50 border-t border-amber-200';
   const heading = isDark ? 'text-slate-100' : 'text-gray-900';
-  const muted = isDark ? 'text-slate-400' : 'text-gray-600';
-  const hover = isDark ? 'hover:text-white' : 'hover:text-gray-900';
+  const muted = isDark ? 'text-slate-400' : 'text-slate-600';
+  const hover = isDark ? 'hover:text-white' : 'hover:text-slate-900';
 
   return (
     <footer className={wrapperClass}>

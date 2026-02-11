@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowDownLeft, ArrowUpRight, BookOpen, LayoutDashboard, Users, Wallet, Zap } from 'lucide-react';
+import { useTheme } from '../lib/theme';
 
 const BottomNav = () => {
   const location = useLocation();
   const pathname = location.pathname;
-  const isLight = pathname.startsWith('/wallet');
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const items = [
     { name: 'Trade', href: '/', icon: Zap },
