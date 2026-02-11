@@ -959,11 +959,19 @@ const WalletPage = () => {
                   </div>
                   <div>
                     <label className="wallet-label">Vault Address</label>
-                    <input
-                      className="wallet-input w-full text-sm mt-2"
-                      value={vaultAddress}
-                      readOnly
-                    />
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        className="wallet-input w-full text-sm"
+                        value={vaultAddress}
+                        readOnly
+                      />
+                      <button
+                        onClick={() => handleCopy(vaultAddress)}
+                        className="wallet-button-secondary text-[10px]"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1196,19 +1204,22 @@ const WalletPage = () => {
                 <ShieldCheck className="h-4 w-4 text-blue-500" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {tokenList.map((token) => (
+                {[
+                  {
+                    symbol: vaultChain === 'bsc' ? 'BNB' : vaultChain === 'sol' ? 'SOL' : 'ETH',
+                    chain: vaultChain.toUpperCase(),
+                    hint: 'Main asset',
+                    value: `$${vaultChainBalance.toFixed(2)}`
+                  },
+                  { symbol: 'USDT', chain: vaultChain.toUpperCase(), hint: 'Stablecoin', value: '$0.00' },
+                  { symbol: 'USDC', chain: vaultChain.toUpperCase(), hint: 'Stablecoin', value: '$0.00' }
+                ].map((token) => (
                   <div key={token.symbol} className="wallet-panel">
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-slate-900">{token.symbol}</div>
                       <span className="text-xs wallet-muted">{token.chain}</span>
                     </div>
-                    <div className="mt-2 text-lg text-slate-900">{token.symbol === 'ETH'
-                      ? `$${(status?.vault_balances?.eth?.balance ?? 0).toFixed(2)}`
-                      : token.symbol === 'BNB'
-                        ? `$${(status?.vault_balances?.bsc?.balance ?? 0).toFixed(2)}`
-                        : token.symbol === 'SOL'
-                          ? `$${(status?.vault_balances?.sol?.balance ?? 0).toFixed(2)}`
-                          : '$0.00'}</div>
+                    <div className="mt-2 text-lg text-slate-900">{token.value}</div>
                     <div className="text-xs wallet-muted">{token.hint}</div>
                   </div>
                 ))}
@@ -1216,38 +1227,6 @@ const WalletPage = () => {
               <div className="mt-3 text-xs wallet-muted">
                 USDT and USDC balances are detected on scan and included in your vault totals.
               </div>
-            </div>
-
-            <div className="wallet-card mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">Wallet Vault (On-chain)</h2>
-                <Terminal className="h-4 w-4 text-blue-500" />
-              </div>
-              <p className="text-xs wallet-muted mb-4">
-                Funds sent here stay in your personal vault until you push them into the Rogue Engine.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {['eth', 'bsc', 'sol'].map((chain) => {
-                  const vaultEntry = status?.vault_balances?.[chain];
-                  const address = vaultEntry?.address || status?.addresses?.[chain]?.address || '-';
-                  const chainBalance = vaultEntry?.balance ?? 0;
-                  return (
-                    <div key={chain} className="wallet-panel">
-                      <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] wallet-muted">
-                        <span>{chain.toUpperCase()}</span>
-                        <button onClick={() => handleCopy(address)} className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-500">
-                          <Copy className="h-3 w-3" />
-                          Copy
-                        </button>
-                      </div>
-                      <div className="mt-2 text-xs break-all text-slate-700">{address}</div>
-                      <div className="mt-3 text-sm text-slate-900">Vault: ${Number(chainBalance || 0).toLocaleString()}</div>
-                    </div>
-                  );
-                })}
-              </div>
-
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   onClick={handleScan}
@@ -1266,7 +1245,16 @@ const WalletPage = () => {
                   </div>
                 )}
               </div>
+            </div>
 
+            <div className="wallet-card mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Vault Actions</h2>
+                <Terminal className="h-4 w-4 text-blue-500" />
+              </div>
+              <p className="text-xs wallet-muted mb-4">
+                Funds sent here stay in your personal vault until you push them into the Rogue Engine.
+              </p>
               <div className="mt-6 wallet-panel">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-slate-900">Push to Rogue Engine</h3>
