@@ -1,19 +1,12 @@
 ﻿
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, Copy, RefreshCw, Send, ShieldCheck, Terminal, UserCircle, Wallet } from 'lucide-react';
+import { ArrowUpRight, Copy, RefreshCw, Send, ShieldCheck, Terminal, UserCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { api } from '../lib/api';
 import { getTelegramDisplayName, getTelegramUser } from '../lib/telegram';
-import {
-  deriveImportedWallet,
-  getImportedBalances,
-  sendImportedTransaction
-} from '../lib/importWallet';
-import type { ImportedBalances, ImportedWallet } from '../lib/importWallet';
-
 type WalletStatus = {
   enabled: boolean;
   transfer_fee_percent: number;
@@ -32,21 +25,13 @@ type WalletStatus = {
   is_admin?: boolean;
 };
 
-type OnboardingStep = 'intro' | 'alias' | 'terms' | 'choice' | 'import' | 'declined' | 'done';
+type OnboardingStep = 'intro' | 'alias' | 'terms' | 'declined' | 'done';
+type AssetSymbol = 'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC';
 
-type ImportMode = 'seed' | 'private';
-
-type WalletMode = 'native' | 'import' | '';
-
-type ImportAsset = 'ETH' | 'BNB' | 'SOL' | 'USDT' | 'USDC';
-
-type SummaryMode = 'wallet' | 'vault' | 'import';
-type VaultSendMode = 'external' | 'import';
-
+type SummaryMode = 'wallet' | 'vault';
 const MIN_PUSH = 20;
 const DEPOSIT_FEE_PERCENT = 0.1;
 const TERMS_KEY = 'rogue_wallet_terms_accepted';
-const MODE_KEY = 'rogue_wallet_mode';
 
 const WalletPage = () => {
   const [status, setStatus] = useState<WalletStatus | null>(null);
@@ -72,36 +57,17 @@ const WalletPage = () => {
   const [pushChain, setPushChain] = useState('eth');
   const [pushing, setPushing] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [walletMode, setWalletMode] = useState<WalletMode>('');
-  const [importMode, setImportMode] = useState<ImportMode>('seed');
-  const [importValue, setImportValue] = useState('');
-  const [importedWallet, setImportedWallet] = useState<ImportedWallet | null>(null);
-  const [importBalances, setImportBalances] = useState<ImportedBalances | null>(null);
-  const [importError, setImportError] = useState('');
-  const [importLoading, setImportLoading] = useState(false);
-  const [importRefreshing, setImportRefreshing] = useState(false);
-  const [importChain, setImportChain] = useState<'eth' | 'bsc' | 'sol'>('eth');
-  const [importAsset, setImportAsset] = useState<ImportAsset>('ETH');
-  const [importRecipient, setImportRecipient] = useState('');
-  const [importSendAmount, setImportSendAmount] = useState('');
-  const [importSending, setImportSending] = useState(false);
-  const [importTx, setImportTx] = useState<string | null>(null);
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('wallet');
   const [vaultChain, setVaultChain] = useState<'eth' | 'bsc' | 'sol'>('eth');
   const [vaultPickerOpen, setVaultPickerOpen] = useState(false);
   const [vaultSendOpen, setVaultSendOpen] = useState(false);
-  const [vaultSendMode, setVaultSendMode] = useState<VaultSendMode>('external');
   const [vaultSendAmount, setVaultSendAmount] = useState('');
   const [vaultSendRecipient, setVaultSendRecipient] = useState('');
-  const [vaultSendAsset, setVaultSendAsset] = useState<ImportAsset>('ETH');
+  const [vaultSendAsset, setVaultSendAsset] = useState<AssetSymbol>('ETH');
   const [vaultSending, setVaultSending] = useState(false);
 
   const telegramUser = getTelegramUser();
   const displayName = getTelegramDisplayName() || 'Runner';
-  const importHasEvm = !!importedWallet?.evm;
-  const importHasSol = !!importedWallet?.sol;
-  const importVaultAddress = vaultChain === 'sol' ? importedWallet?.sol?.address : importedWallet?.evm?.address;
-  const importVaultAvailable = !!importVaultAddress;
 
   const chains = [
     { id: 'eth', name: 'Ethereum', symbol: 'ETH' },
@@ -109,13 +75,6 @@ const WalletPage = () => {
     { id: 'sol', name: 'Solana', symbol: 'SOL' }
   ];
 
-  const tokenList = [
-    { symbol: 'ETH', chain: 'ETH', hint: 'Main asset' },
-    { symbol: 'BNB', chain: 'BSC', hint: 'Main asset' },
-    { symbol: 'SOL', chain: 'SOL', hint: 'Main asset' },
-    { symbol: 'USDT', chain: 'MULTI', hint: 'Stablecoin' },
-    { symbol: 'USDC', chain: 'MULTI', hint: 'Stablecoin' }
-  ];
 
   const vaultOptions = [
     { id: 'eth' as const, name: 'Ethereum', symbol: 'ETH', logo: '/assets/eth.svg' },
@@ -123,30 +82,14 @@ const WalletPage = () => {
     { id: 'sol' as const, name: 'Solana', symbol: 'SOL', logo: '/assets/sol.svg' }
   ];
 
-  const importAssetOptions = useMemo<ImportAsset[]>(() => {
-    if (importChain === 'eth') return ['ETH', 'USDT', 'USDC'];
-    if (importChain === 'bsc') return ['BNB', 'USDT', 'USDC'];
-    return ['SOL', 'USDT', 'USDC'];
-  }, [importChain]);
 
-  const vaultAssetOptions = useMemo<ImportAsset[]>(() => {
+  const vaultAssetOptions = useMemo<AssetSymbol[]>(() => {
     if (vaultChain === 'eth') return ['ETH', 'USDT', 'USDC'];
     if (vaultChain === 'bsc') return ['BNB', 'USDT', 'USDC'];
     return ['SOL', 'USDT', 'USDC'];
   }, [vaultChain]);
 
-  const importChainOptions = useMemo(() => {
-    if (importHasEvm && importHasSol) return chains;
-    if (importHasEvm) return chains.filter((chain) => chain.id !== 'sol');
-    if (importHasSol) return chains.filter((chain) => chain.id === 'sol');
-    return chains;
-  }, [importHasEvm, importHasSol, chains]);
 
-  useEffect(() => {
-    if (!importAssetOptions.includes(importAsset)) {
-      setImportAsset(importAssetOptions[0]);
-    }
-  }, [importAssetOptions, importAsset]);
 
   useEffect(() => {
     if (!vaultAssetOptions.includes(vaultSendAsset)) {
@@ -154,12 +97,6 @@ const WalletPage = () => {
     }
   }, [vaultAssetOptions, vaultSendAsset]);
 
-  const getExplorerTxUrl = (chain: 'eth' | 'bsc' | 'sol', txid: string) => {
-    if (!txid) return '';
-    if (chain === 'eth') return `https://etherscan.io/tx/${txid}`;
-    if (chain === 'bsc') return `https://bscscan.com/tx/${txid}`;
-    return `https://solscan.io/tx/${txid}`;
-  };
 
   const withTimeout = async <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -215,8 +152,6 @@ const WalletPage = () => {
   useEffect(() => {
     try {
       setTermsAccepted(localStorage.getItem(TERMS_KEY) === 'true');
-      const savedMode = (localStorage.getItem(MODE_KEY) || '') as WalletMode;
-      setWalletMode(savedMode);
     } catch {
       // ignore
     }
@@ -235,42 +170,10 @@ const WalletPage = () => {
       setOnboardingStep('terms');
       return;
     }
-    if (walletMode === 'import' && !importedWallet) {
-      setShowOnboarding(true);
-      setOnboardingStep('import');
-      return;
-    }
-    if (!walletMode) {
-      setShowOnboarding(true);
-      setOnboardingStep('choice');
-      return;
-    }
     setShowOnboarding(false);
     setOnboardingStep('done');
-  }, [loading, effectiveAlias, termsAccepted, walletMode, importedWallet]);
+  }, [loading, effectiveAlias, termsAccepted]);
 
-  useEffect(() => {
-    if (!importedWallet) return;
-    let active = true;
-    const refresh = async () => {
-      setImportRefreshing(true);
-      try {
-        const balances = await getImportedBalances(importedWallet);
-        if (active) {
-          setImportBalances(balances);
-          setImportError('');
-        }
-      } catch (err: any) {
-        if (active) setImportError(err?.message || 'Failed to load balances');
-      } finally {
-        if (active) setImportRefreshing(false);
-      }
-    };
-    refresh();
-    return () => {
-      active = false;
-    };
-  }, [importedWallet]);
 
   useEffect(() => {
     if (!showOnboarding || (onboardingStep !== 'alias' && onboardingStep !== 'terms')) return;
@@ -305,34 +208,12 @@ const WalletPage = () => {
     vaultEntry?.address || status?.addresses?.[vaultChain]?.address || '-';
   const vaultChainBalance = Number(vaultEntry?.balance || 0);
   const vaultMeta = vaultOptions.find((opt) => opt.id === vaultChain);
-  const summaryAmount = summaryMode === 'wallet'
-    ? botBalance
-    : summaryMode === 'vault'
-      ? vaultChainBalance
-      : null;
-  const summaryLabel = summaryMode === 'wallet'
-    ? 'Wallet balance'
-    : summaryMode === 'vault'
-      ? `Vault balance (${vaultMeta?.symbol || vaultChain.toUpperCase()})`
-      : 'Imported balances';
-  const importSummary = (() => {
-    if (!importedWallet) return 'Import wallet to view balances';
-    if (!importBalances) return 'Loading import balances...';
-    const parts: string[] = [];
-    if (importHasEvm) {
-      parts.push(`ETH ${importBalances.eth.native?.toFixed(4) || '0'}`);
-      parts.push(`BNB ${importBalances.bsc.native?.toFixed(4) || '0'}`);
-    }
-    if (importHasSol) {
-      parts.push(`SOL ${importBalances.sol.native?.toFixed(4) || '0'}`);
-    }
-    return parts.join(' | ');
-  })();
-  const importSummaryDisplay = importedWallet ? importSummary : 'Import wallet to view';
-  const summaryDisplayText =
-    summaryMode === 'import'
-      ? importSummaryDisplay
-      : `$${Number(summaryAmount || 0).toLocaleString()}`;
+  const summaryAmount = summaryMode === 'wallet' ? botBalance : vaultChainBalance;
+  const summaryLabel =
+    summaryMode === 'wallet'
+      ? 'Wallet balance'
+      : `Vault balance (${vaultMeta?.symbol || vaultChain.toUpperCase()})`;
+  const summaryDisplayText = `$${Number(summaryAmount).toLocaleString()}`;
 
   const handleSummarySelect = (mode: SummaryMode) => {
     if (mode === 'vault') {
@@ -343,22 +224,7 @@ const WalletPage = () => {
     setSummaryMode(mode);
   };
 
-  useEffect(() => {
-    if (!importedWallet) return;
-    if (!importHasEvm && importChain !== 'sol') {
-      setImportChain('sol');
-      return;
-    }
-    if (!importHasSol && importChain === 'sol') {
-      setImportChain('eth');
-    }
-  }, [importedWallet, importHasEvm, importHasSol, importChain]);
 
-  useEffect(() => {
-    if (walletMode === 'import') {
-      setSummaryMode('import');
-    }
-  }, [walletMode]);
 
   const numericAmount = Number(amount || 0);
 
@@ -481,11 +347,10 @@ const WalletPage = () => {
 
   const handleVaultSend = async () => {
     const amountNumber = Number(vaultSendAmount || 0);
-    const destination =
-      vaultSendMode === 'import' ? (importVaultAddress || '') : vaultSendRecipient.trim();
+    const destination = vaultSendRecipient.trim();
 
     if (!destination) {
-      toast.error(vaultSendMode === 'import' ? 'Import a wallet first' : 'Enter a recipient address');
+      toast.error('Enter a recipient address');
       return;
     }
     if (!amountNumber || amountNumber <= 0) {
@@ -550,8 +415,6 @@ const WalletPage = () => {
     );
     if (!termsAccepted) {
       setOnboardingStep('terms');
-    } else if (!walletMode) {
-      setOnboardingStep('choice');
     } else {
       setShowOnboarding(false);
       setOnboardingStep('done');
@@ -588,123 +451,12 @@ const WalletPage = () => {
       // ignore
     }
     setTermsAccepted(true);
-    setOnboardingStep('choice');
-  };
-
-  const handleDeclineTerms = () => {
-    setOnboardingStep('declined');
-  };
-
-  const handleSelectMode = (mode: WalletMode) => {
-    if (mode === 'import') {
-      try {
-        localStorage.setItem(MODE_KEY, 'import');
-      } catch {
-        // ignore
-      }
-      setWalletMode('import');
-      setOnboardingStep('import');
-      setShowOnboarding(true);
-      return;
-    }
-    try {
-      localStorage.setItem(MODE_KEY, mode);
-    } catch {
-      // ignore
-    }
-    setWalletMode(mode);
     setShowOnboarding(false);
     setOnboardingStep('done');
   };
 
-  const handleImport = async () => {
-    if (!importValue.trim()) {
-      toast.error('Enter your seed phrase or private key');
-      return;
-    }
-    setImportLoading(true);
-    setImportError('');
-    try {
-      const wallet = await deriveImportedWallet(importMode, importValue);
-      setImportedWallet(wallet);
-      setImportTx(null);
-      try {
-        localStorage.setItem(MODE_KEY, 'import');
-      } catch {
-        // ignore
-      }
-      setWalletMode('import');
-      setImportValue('');
-      setShowOnboarding(false);
-      setOnboardingStep('done');
-      toast.success('Wallet imported');
-      getImportedBalances(wallet)
-        .then((balances) => {
-          setImportBalances(balances);
-          setImportError('');
-        })
-        .catch((err: any) => {
-          setImportError(err?.message || 'Balances unavailable');
-        });
-    } catch (err: any) {
-      const message = err?.message || 'Failed to import wallet';
-      setImportError(message);
-      toast.error(message);
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
-  const handleRefreshImported = async () => {
-    if (!importedWallet) return;
-    setImportRefreshing(true);
-    try {
-      const balances = await getImportedBalances(importedWallet);
-      setImportBalances(balances);
-      setImportError('');
-      toast.success('Balances updated');
-    } catch (err: any) {
-      const message = err?.message || 'Failed to refresh balances';
-      setImportError(message);
-      toast.error(message);
-    } finally {
-      setImportRefreshing(false);
-    }
-  };
-
-  const handleSendImported = async () => {
-    if (!importedWallet) {
-      toast.error('Import your wallet first');
-      return;
-    }
-    if (!importRecipient.trim()) {
-      toast.error('Enter a recipient address');
-      return;
-    }
-    const amountValue = Number(importSendAmount || 0);
-    if (!amountValue || amountValue <= 0) {
-      toast.error('Enter a valid amount');
-      return;
-    }
-    setImportSending(true);
-    try {
-      const res = await sendImportedTransaction({
-        wallet: importedWallet,
-        chain: importChain,
-        asset: importAsset,
-        to: importRecipient.trim(),
-        amount: amountValue
-      });
-      setImportTx(res?.txid || null);
-      toast.success('Transaction sent');
-      await handleRefreshImported();
-      setImportRecipient('');
-      setImportSendAmount('');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to send transaction');
-    } finally {
-      setImportSending(false);
-    }
+  const handleDeclineTerms = () => {
+    setOnboardingStep('declined');
   };
 
   const aliasDisplay = effectiveAlias;
@@ -765,71 +517,15 @@ const WalletPage = () => {
               </button>
             </div>
 
-            <div className="wallet-panel mt-4">
-              <div className="wallet-label">Destination</div>
-              <div className="mt-2 flex gap-2">
-                {(['external', 'import'] as VaultSendMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setVaultSendMode(mode)}
-                    className={`flex-1 rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.25em] ${
-                      vaultSendMode === mode
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-slate-500 border border-slate-200'
-                    }`}
-                  >
-                    {mode === 'external' ? 'External' : 'Imported'}
-                  </button>
-                ))}
-              </div>
+            <div className="mt-4">
+              <label className="wallet-label">Recipient Address</label>
+              <input
+                value={vaultSendRecipient}
+                onChange={(e) => setVaultSendRecipient(e.target.value)}
+                className="wallet-input w-full text-sm mt-2"
+                placeholder="Destination address"
+              />
             </div>
-
-            {vaultSendMode === 'import' && !importVaultAvailable && (
-              <div className="wallet-panel mt-4 text-xs wallet-muted">
-                No imported wallet found for this chain. Import a wallet first.
-                <button
-                  onClick={() => {
-                    setVaultSendOpen(false);
-                    setOnboardingStep('import');
-                    setShowOnboarding(true);
-                  }}
-                  className="mt-3 wallet-button text-xs"
-                >
-                  Import Wallet
-                </button>
-              </div>
-            )}
-
-            {vaultSendMode === 'external' && (
-              <div className="mt-4">
-                <label className="wallet-label">Recipient Address</label>
-                <input
-                  value={vaultSendRecipient}
-                  onChange={(e) => setVaultSendRecipient(e.target.value)}
-                  className="wallet-input w-full text-sm mt-2"
-                  placeholder="Destination address"
-                />
-              </div>
-            )}
-
-            {vaultSendMode === 'import' && importVaultAvailable && (
-              <div className="mt-4">
-                <label className="wallet-label">Imported Wallet</label>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    className="wallet-input w-full text-sm"
-                    value={importVaultAddress || ''}
-                    readOnly
-                  />
-                  <button
-                    onClick={() => handleCopy(importVaultAddress || '')}
-                    className="wallet-button-secondary text-[10px]"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            )}
 
             <div className="mt-4">
               <label className="wallet-label">Asset</label>
@@ -866,10 +562,7 @@ const WalletPage = () => {
             <div className="mt-5 flex flex-col gap-3">
               <button
                 onClick={handleVaultSend}
-                disabled={
-                  vaultSending ||
-                  (vaultSendMode === 'import' && !importVaultAvailable)
-                }
+                disabled={vaultSending}
                 className="wallet-button text-sm disabled:opacity-50"
               >
                 {vaultSending ? 'Sending...' : 'Send'}
@@ -937,8 +630,8 @@ const WalletPage = () => {
                     supported networks. Always verify addresses before sending funds.
                   </p>
                   <p>
-                    Rogue Wallet is non-custodial for imported wallets. Imported keys are stored
-                    locally only and never sent to our servers.
+                    Rogue Wallet uses permanent vault addresses and internal transfers.
+                    Never share your private keys or recovery phrases with anyone.
                   </p>
                 </div>
                 <div className="matrix-choice">
@@ -963,67 +656,6 @@ const WalletPage = () => {
                 </button>
               </div>
             )}
-            {onboardingStep === 'choice' && (
-              <div className="matrix-card">
-                <div className="matrix-badge">WALLET MODE</div>
-                <h2 className="matrix-title">Choose your setup</h2>
-                <div className="matrix-choice-grid">
-                  <button className="matrix-choice-card" onClick={() => handleSelectMode('native')}>
-                    <Wallet className="h-6 w-6" />
-                    <div>
-                      <div className="matrix-choice-title">Use Rogue Wallet</div>
-                      <div className="matrix-choice-sub">Permanent addresses, vault balance, internal transfers.</div>
-                    </div>
-                  </button>
-                  <button className="matrix-choice-card" onClick={() => handleSelectMode('import')}>
-                    <ShieldCheck className="h-6 w-6" />
-                    <div>
-                      <div className="matrix-choice-title">Import Wallet</div>
-                      <div className="matrix-choice-sub">Bring your own seed or private key.</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            )}
-            {onboardingStep === 'import' && (
-              <div className="matrix-card">
-                <div className="matrix-badge">IMPORT WALLET</div>
-                <p className="matrix-sub">
-                  Keys never leave your device. Choose seed phrase or private key.
-                </p>
-                <div className="matrix-import-tabs">
-                  <button
-                    className={importMode === 'seed' ? 'active' : ''}
-                    onClick={() => setImportMode('seed')}
-                  >
-                    Seed Phrase
-                  </button>
-                  <button
-                    className={importMode === 'private' ? 'active' : ''}
-                    onClick={() => setImportMode('private')}
-                  >
-                    Private Key
-                  </button>
-                </div>
-                <textarea
-                  className="matrix-textarea"
-                  value={importValue}
-                  onChange={(e) => setImportValue(e.target.value)}
-                  placeholder={importMode === 'seed' ? 'Enter 12 or 24 word seed phrase' : 'Enter private key'}
-                />
-                {importError && <div className="mt-2 text-xs text-rose-500">{importError}</div>}
-                <button className="matrix-button" onClick={handleImport} disabled={importLoading}>
-                  {importLoading ? 'Importing...' : 'Import Wallet'}
-                </button>
-                <button
-                  className="matrix-button ghost mt-3"
-                  onClick={() => handleSelectMode('native')}
-                  disabled={importLoading}
-                >
-                  Use Rogue Wallet Instead
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1038,11 +670,6 @@ const WalletPage = () => {
             {aliasDisplay && (
               <div className="mt-2 wallet-label">
                 Rogue ID: {aliasDisplay}
-              </div>
-            )}
-            {walletMode && (
-              <div className="mt-2 text-xs uppercase tracking-[0.3em] wallet-muted">
-                Wallet Mode: {walletMode === 'import' ? 'Imported' : 'Rogue Wallet'}
               </div>
             )}
             {aliasDisplay && allowAliasChange && (
@@ -1081,7 +708,7 @@ const WalletPage = () => {
           <div className="wallet-panel mt-4">
             <div className="wallet-label">Payment Method</div>
             <div className="mt-2 flex gap-2">
-              {(['wallet', 'vault', 'import'] as SummaryMode[]).map((mode) => (
+              {(['wallet', 'vault'] as SummaryMode[]).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => handleSummarySelect(mode)}
@@ -1091,7 +718,7 @@ const WalletPage = () => {
                       : 'bg-white text-slate-500 border border-slate-200'
                   }`}
                 >
-                  {mode === 'wallet' ? 'Wallet' : mode === 'vault' ? 'Vault' : 'Import'}
+                  {mode === 'wallet' ? 'Wallet' : 'Vault'}
                 </button>
               ))}
             </div>
@@ -1195,221 +822,7 @@ const WalletPage = () => {
               </div>
             </div>
           )}
-
-          {summaryMode === 'import' && (
-            <div className="mt-4 space-y-3">
-              {!importedWallet ? (
-                <div className="wallet-panel text-slate-700">
-                  <div className="text-sm text-slate-900">No imported wallet yet</div>
-                  <div className="text-xs wallet-muted mt-1">
-                    Import a seed phrase or private key to view balances and send funds.
-                  </div>
-                  <button
-                    onClick={() => {
-                      setOnboardingStep('import');
-                      setShowOnboarding(true);
-                    }}
-                    className="mt-3 wallet-button text-xs"
-                  >
-                    Import Wallet
-                  </button>
-                </div>
-              ) : (
-                <div className="wallet-panel">
-                  <div className="wallet-label">Imported Totals</div>
-                  <div className="mt-2 text-sm text-slate-900">{importSummary}</div>
-                  <div className="text-xs wallet-muted mt-1">
-                    Totals show native balances for ETH, BNB, and SOL.
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
-
-        {summaryMode === 'import' && (
-          <div className="wallet-card mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Imported Wallet</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleRefreshImported}
-                  disabled={!importedWallet || importRefreshing}
-                  className="inline-flex items-center gap-2 wallet-button-secondary text-[10px] disabled:opacity-50"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  {importRefreshing ? 'Refreshing' : 'Refresh'}
-                </button>
-              </div>
-            </div>
-            {!importedWallet ? (
-              <div className="wallet-panel text-slate-700">
-                <div className="text-sm text-slate-900">Imported wallet not loaded</div>
-                <div className="text-xs wallet-muted mt-1">
-                  Re-import your seed phrase or private key to load balances and send transactions.
-                </div>
-                <button
-                  onClick={() => {
-                    setOnboardingStep('import');
-                    setShowOnboarding(true);
-                  }}
-                  className="mt-3 wallet-button text-xs"
-                >
-                  Re-import Wallet
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="wallet-panel">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] wallet-muted">
-                      <span>EVM Address</span>
-                      <button
-                        onClick={() => handleCopy(importedWallet?.evm?.address || '')}
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-500"
-                      >
-                        <Copy className="h-3 w-3" />
-                        Copy
-                      </button>
-                    </div>
-                    <div className="mt-2 text-xs break-all text-slate-700">
-                      {importedWallet?.evm?.address || 'Not available'}
-                    </div>
-                  </div>
-                  <div className="wallet-panel">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] wallet-muted">
-                      <span>Solana Address</span>
-                      <button
-                        onClick={() => handleCopy(importedWallet?.sol?.address || '')}
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-500"
-                      >
-                        <Copy className="h-3 w-3" />
-                        Copy
-                      </button>
-                    </div>
-                    <div className="mt-2 text-xs break-all text-slate-700">
-                      {importedWallet?.sol?.address || 'Not available'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {importHasEvm && (
-                    <>
-                      <div className="wallet-panel">
-                        <div className="text-xs uppercase tracking-[0.25em] wallet-muted">Ethereum</div>
-                        <div className="mt-2 text-sm text-slate-900">
-                          {importBalances?.eth.native?.toFixed(4) || '0'} ETH
-                        </div>
-                        <div className="text-xs wallet-muted mt-1">
-                          USDT: {importBalances?.eth.usdt?.toFixed(2) || '0'} | USDC:{' '}
-                          {importBalances?.eth.usdc?.toFixed(2) || '0'}
-                        </div>
-                      </div>
-                      <div className="wallet-panel">
-                        <div className="text-xs uppercase tracking-[0.25em] wallet-muted">BSC</div>
-                        <div className="mt-2 text-sm text-slate-900">
-                          {importBalances?.bsc.native?.toFixed(4) || '0'} BNB
-                        </div>
-                        <div className="text-xs wallet-muted mt-1">
-                          USDT: {importBalances?.bsc.usdt?.toFixed(2) || '0'} | USDC:{' '}
-                          {importBalances?.bsc.usdc?.toFixed(2) || '0'}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  {importHasSol && (
-                    <div className="wallet-panel">
-                      <div className="text-xs uppercase tracking-[0.25em] wallet-muted">Solana</div>
-                      <div className="mt-2 text-sm text-slate-900">
-                        {importBalances?.sol.native?.toFixed(4) || '0'} SOL
-                      </div>
-                      <div className="text-xs wallet-muted mt-1">
-                        USDT: {importBalances?.sol.usdt?.toFixed(2) || '0'} | USDC:{' '}
-                        {importBalances?.sol.usdc?.toFixed(2) || '0'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {importError && (
-                  <div className="mt-3 text-xs text-rose-500">{importError}</div>
-                )}
-
-                <div className="mt-6 wallet-panel">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-900">Send from Imported Wallet</h3>
-                    <Send className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="flex gap-2">
-                      {importChainOptions.map((chain) => (
-                        <button
-                          key={`import-${chain.id}`}
-                          onClick={() => setImportChain(chain.id as 'eth' | 'bsc' | 'sol')}
-                          className={`flex-1 rounded-xl border px-2 py-2 text-xs uppercase tracking-[0.25em] ${
-                            importChain === chain.id
-                              ? 'border-blue-500 bg-blue-600 text-white'
-                              : 'border-slate-200 bg-white text-slate-500'
-                          }`}
-                        >
-                          {chain.symbol}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      {importAssetOptions.map((asset) => (
-                        <button
-                          key={`import-asset-${asset}`}
-                          onClick={() => setImportAsset(asset)}
-                          className={`flex-1 rounded-xl border px-2 py-2 text-[10px] uppercase tracking-[0.25em] ${
-                            importAsset === asset
-                              ? 'border-indigo-500 bg-indigo-600 text-white'
-                              : 'border-slate-200 bg-white text-slate-500'
-                          }`}
-                        >
-                          {asset}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      value={importRecipient}
-                      onChange={(e) => setImportRecipient(e.target.value)}
-                      className="wallet-input w-full text-sm"
-                      placeholder="Recipient address"
-                    />
-                    <input
-                      value={importSendAmount}
-                      onChange={(e) => setImportSendAmount(e.target.value)}
-                      className="wallet-input w-full text-sm"
-                      placeholder="Amount"
-                    />
-                    <button
-                      onClick={handleSendImported}
-                      disabled={importSending}
-                      className="wallet-button text-sm disabled:opacity-50"
-                    >
-                      {importSending ? 'Sending...' : 'Send'}
-                    </button>
-                  </div>
-                  {importTx && (
-                    <div className="mt-3 text-xs wallet-muted">
-                      Tx: {importTx.slice(0, 12)}...{' '}
-                      <a
-                        className="text-blue-600 hover:text-blue-500 underline"
-                        href={getExplorerTxUrl(importChain, importTx)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
         {summaryMode === 'vault' && (
           <>
@@ -1517,7 +930,7 @@ const WalletPage = () => {
                   <Send className="h-4 w-4 text-blue-600" />
                 </div>
                 <p className="text-xs wallet-muted mt-2">
-                  Send funds to an external address or your imported wallet on this chain.
+                  Send funds to an external address on this chain.
                 </p>
                 <button
                   onClick={() => setVaultSendOpen(true)}
